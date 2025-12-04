@@ -1,0 +1,393 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Hotspot Builder — Single File</title>
+  <style>
+    :root{--bg:#0f1724;--panel:#0b1220;--accent:#7c3aed;--muted:#9aa4b2;}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef6;background:linear-gradient(180deg,#071027 0%, #07122a 60%);}
+    .app{display:grid;grid-template-columns:380px 1fr;gap:18px;padding:18px;height:100vh;box-sizing:border-box}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(2,6,23,0.6);overflow:auto}
+    h2{margin:6px 0 12px;font-size:16px}
+    .drop{border:2px dashed rgba(255,255,255,0.04);padding:14px;border-radius:8px;min-height:84px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
+    .files{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+    .file{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer}
+    .file.selected{outline:2px solid rgba(124,58,237,0.18)}
+    .thumb{width:56px;height:40px;object-fit:cover;border-radius:6px}
+    .meta{font-size:13px;color:var(--muted)}
+    .viewer{display:flex;flex-direction:column;height:100%}
+    .canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px}
+    .image-box{position:relative;display:inline-block;border-radius:8px;background:#081021;padding:6px}
+    img#main{display:block;max-width:100%;height:auto;border-radius:6px;user-select:none}
+    .marker{position:absolute;width:18px;height:18px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;background:var(--accent);color:white;font-size:11px;cursor:grab}
+    .marker.dragging{cursor:grabbing;opacity:0.9}
+    .controls{display:flex;gap:8px;align-items:center;margin-top:12px}
+    button{background:linear-gradient(180deg,var(--accent),#5b21b6);border:0;padding:8px 10px;border-radius:8px;color:white;cursor:pointer}
+    .muted-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    .inputs{display:flex;gap:8px;align-items:center;margin-top:10px}
+    label{font-size:13px;color:var(--muted)}
+    input[type='text']{padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+    textarea{width:100%;height:120px;background:transparent;color:inherit;border-radius:8px;border:1px solid rgba(255,255,255,0.04);padding:8px}
+    footer{font-size:12px;color:var(--muted);margin-top:12px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+    .hotspot-list{margin-top:8px;display:flex;flex-direction:column;gap:6px}
+    .hotspot-item{display:flex;justify-content:space-between;gap:6px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);font-size:13px}
+    .small{font-size:12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <div class="topbar">
+        <h2>Hotspot Builder</h2>
+        <div class="small">Single-file • Local • No backend</div>
+      </div>
+
+      <div class="drop" id="drop">
+        <div style="font-weight:600">Drag & drop images here</div>
+        <div class="small">Supports JPG, PNG, WebP. Click to browse.</div>
+        <input id="fileinput" type="file" accept="image/*" multiple style="display:none" />
+      </div>
+
+      <div class="files" id="filelist" aria-live="polite"></div>
+
+      <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
+        <button id="exportJson">Export JSON</button>
+        <button id="importJson" class="muted-btn">Import JSON</button>
+        <button id="downloadAllAnnotated" class="muted-btn">Download Annotated Images</button>
+        <button id="downloadXMP" class="muted-btn">Download .XMP Sidecars</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="small">Bulk JSON output (preview)</label>
+        <textarea id="jsonPreview" readonly></textarea>
+      </div>
+
+      <footer>Tips: click an image to select → click on the image to add marker → drag to move → right-click to delete. Export to JSON or XMP sidecar.</footer>
+    </div>
+
+    <div class="panel viewer">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div>
+          <h2 id="imgTitle">No image selected</h2>
+          <div class="meta" id="imgMeta"></div>
+        </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <label class="small">Label:</label>
+          <input type="text" id="currentLabel" placeholder="marker label" />
+          <button id="toggleLabels" class="muted-btn">Toggle Labels</button>
+          <button id="downloadAnnotated" class="muted-btn">Download Annotated</button>
+          <button id="embedUserComment" class="muted-btn">Embed JSON in JPEG (UserComment)</button>
+        </div>
+      </div>
+
+      <div class="canvas-wrap">
+        <div class="image-box" id="imageBox">
+          <img id="main" src="" alt="" draggable="false" />
+        </div>
+      </div>
+
+      <div class="controls">
+        <div class="small">Click on the image to add a hotspot at that pixel. Markers are stored relative to the image's natural resolution.</div>
+      </div>
+
+      <div style="margin-top:12px">
+        <div style="display:flex;gap:8px;align-items:center">
+          <label class="small">Hotspots</label>
+          <div id="hotCount" class="small"></div>
+        </div>
+        <div class="hotspot-list" id="hotspotList"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Single-file Hotspot Builder JS
+// Features implemented:
+// - Drag/drop or browse to load images (multiple)
+// - Click to add hotspot (saved as absolute pixel coords relative to naturalWidth/naturalHeight)
+// - Drag to reposition markers
+// - Right-click marker to delete
+// - Edit label for marker
+// - Export JSON bulk; Import JSON
+// - Download annotated image (PNG) per-image or bulk
+// - Download .xmp sidecar files containing JSON for each image
+// - Embed JSON into JPEG's Exif UserComment (best-effort using piexifjs, if image is JPEG)
+
+// State
+const state = { images: [], selectedIndex: -1 };
+
+// Utilities
+function uid(len=6){return Math.random().toString(36).slice(2,2+len)}
+function readFileAsDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
+
+// DOM
+const drop = document.getElementById('drop');
+const fileinput = document.getElementById('fileinput');
+const filelist = document.getElementById('filelist');
+const mainImg = document.getElementById('main');
+const imageBox = document.getElementById('imageBox');
+const imgTitle = document.getElementById('imgTitle');
+const imgMeta = document.getElementById('imgMeta');
+const hotspotList = document.getElementById('hotspotList');
+const jsonPreview = document.getElementById('jsonPreview');
+const exportJsonBtn = document.getElementById('exportJson');
+const importJsonBtn = document.getElementById('importJson');
+const downloadAnnotatedBtn = document.getElementById('downloadAnnotated');
+const downloadAllAnnotatedBtn = document.getElementById('downloadAllAnnotated');
+const downloadXMPBtn = document.getElementById('downloadXMP');
+const currentLabel = document.getElementById('currentLabel');
+const toggleLabelsBtn = document.getElementById('toggleLabels');
+const embedUserCommentBtn = document.getElementById('embedUserComment');
+
+let showLabels = true;
+
+// File handling
+drop.addEventListener('click',()=>fileinput.click());
+fileinput.addEventListener('change', async(e)=>{await handleFiles([...e.target.files]); fileinput.value='';});
+
+['dragenter','dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,(e)=>{e.preventDefault();e.stopPropagation();}));
+drop.addEventListener('drop',async(e)=>{const files=[...e.dataTransfer.files].filter(f=>f.type.startsWith('image/')); await handleFiles(files);});
+
+async function handleFiles(files){
+  for(const file of files){
+    try{
+      const url = await readFileAsDataURL(file);
+      const img = new Image();
+      await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
+      const entry = { id: uid(8), name: file.name, fileType:file.type, dataURL: url, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, hotspots: [] };
+      state.images.push(entry);
+    }catch(err){console.warn('failed to load',file.name,err)}
+  }
+  renderFileList();
+  if(state.selectedIndex===-1 && state.images.length>0) selectImage(0);
+  updatePreviewJSON();
+}
+
+function renderFileList(){
+  filelist.innerHTML='';
+  state.images.forEach((it,i)=>{
+    const el=document.createElement('div');el.className='file'+(i===state.selectedIndex?' selected':'');
+    el.innerHTML=`<img class='thumb' src='${it.dataURL}'/><div style='flex:1'><div style='font-weight:600'>${it.name}</div><div class='meta'>${it.naturalWidth}×${it.naturalHeight} • ${it.hotspots.length} hotspots</div></div>`;
+    el.addEventListener('click',()=>selectImage(i));
+    filelist.appendChild(el);
+  })
+}
+
+function selectImage(index){
+  state.selectedIndex=index;
+  const it=state.images[index];
+  mainImg.src = it.dataURL;
+  imgTitle.textContent = it.name;
+  imgMeta.textContent = `${it.naturalWidth} × ${it.naturalHeight} • ${it.hotspots.length} hotspots`;
+  renderFileList();
+  renderMarkers();
+  updateHotspotList();
+}
+
+// Markers
+function renderMarkers(){
+  // remove existing
+  document.querySelectorAll('.marker').forEach(n=>n.remove());
+  const idx = state.selectedIndex; if(idx<0) return;
+  const it = state.images[idx];
+  it.hotspots.forEach((h, i) => {
+    const el = document.createElement('div');
+    el.className='marker';
+    el.dataset.index = i;
+    el.title = h.label || '';
+    if(showLabels) el.textContent = h.label ? (h.label.length>2? h.label[0] : h.label) : i+1;
+    else el.textContent='';
+    positionMarker(el, h);
+    makeDraggable(el, h, it);
+    el.addEventListener('contextmenu', (ev)=>{ev.preventDefault(); deleteHotspot(i);});
+    imageBox.appendChild(el);
+  });
+}
+
+function positionMarker(el, h){
+  const scaleX = mainImg.clientWidth / mainImg.naturalWidth;
+  const scaleY = mainImg.clientHeight / mainImg.naturalHeight;
+  const left = (h.x / mainImg.naturalWidth) * mainImg.clientWidth;
+  const top = (h.y / mainImg.naturalHeight) * mainImg.clientHeight;
+  el.style.left = left + 'px';
+  el.style.top = top + 'px';
+}
+
+function imgClientToNatural(clientX, clientY){
+  const rect = mainImg.getBoundingClientRect();
+  const cx = Math.min(Math.max(0, clientX - rect.left), rect.width);
+  const cy = Math.min(Math.max(0, clientY - rect.top), rect.height);
+  const nx = Math.round((cx / rect.width) * mainImg.naturalWidth);
+  const ny = Math.round((cy / rect.height) * mainImg.naturalHeight);
+  return { x: nx, y: ny };
+}
+
+mainImg.addEventListener('click',(e)=>{
+  if(state.selectedIndex<0) return;
+  const label = currentLabel.value.trim();
+  const { x,y } = imgClientToNatural(e.clientX, e.clientY);
+  const it = state.images[state.selectedIndex];
+  it.hotspots.push({ x,y,label,id:uid(6) });
+  renderMarkers(); updateHotspotList(); renderFileList(); updatePreviewJSON();
+});
+
+function deleteHotspot(i){
+  if(state.selectedIndex<0) return;
+  const it = state.images[state.selectedIndex];
+  it.hotspots.splice(i,1);
+  renderMarkers(); updateHotspotList(); renderFileList(); updatePreviewJSON();
+}
+
+function makeDraggable(el, hotspot, imageEntry){
+  let dragging=false, startX=0, startY=0;
+  el.addEventListener('mousedown', (e)=>{
+    e.preventDefault(); dragging=true; el.classList.add('dragging');
+    startX = e.clientX; startY = e.clientY;
+    document.addEventListener('mousemove', onmove);
+    document.addEventListener('mouseup', onup, {once:true});
+  });
+  function onmove(e){
+    if(!dragging) return;
+    const rect = mainImg.getBoundingClientRect();
+    const cx = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+    const cy = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
+    const nx = Math.round((cx / rect.width) * mainImg.naturalWidth);
+    const ny = Math.round((cy / rect.height) * mainImg.naturalHeight);
+    hotspot.x = nx; hotspot.y = ny;
+    positionMarker(el, hotspot);
+    updateHotspotList(); updatePreviewJSON();
+  }
+  function onup(){ dragging=false; el.classList.remove('dragging'); document.removeEventListener('mousemove', onmove); }
+}
+
+function updateHotspotList(){
+  hotspotList.innerHTML='';
+  if(state.selectedIndex<0) { document.getElementById('hotCount').textContent=''; return }
+  const it = state.images[state.selectedIndex];
+  document.getElementById('hotCount').textContent = `${it.hotspots.length}`;
+  it.hotspots.forEach((h,i)=>{
+    const el = document.createElement('div'); el.className='hotspot-item';
+    el.innerHTML = `<div style='flex:1'><strong>${i+1}</strong> <span class='small'>${h.label||''}</span><div class='small'>x:${h.x} y:${h.y}</div></div><div style='display:flex;gap:6px'><button class='muted-btn' data-action='edit'>Edit</button><button class='muted-btn' data-action='zoom'>Jump</button></div>`;
+    el.querySelectorAll('button').forEach(btn=>{
+      btn.addEventListener('click',(ev)=>{
+        const act = btn.dataset.action;
+        if(act==='edit'){ const newLabel = prompt('New label', h.label||''); if(newLabel!==null){ h.label=newLabel; renderMarkers(); updateHotspotList(); updatePreviewJSON(); }}
+        if(act==='zoom'){ // no zoom, but move viewport by setting scroll to image
+          // center imageBox viewport to marker
+          const rect = mainImg.getBoundingClientRect(); const cx=(h.x/mainImg.naturalWidth)*rect.width + rect.left; window.scrollTo({left: Math.max(0,cx-200), behavior:'smooth'});
+        }
+      })
+    });
+    hotspotList.appendChild(el);
+  });
+}
+
+// Exports & imports
+function buildExport(){
+  return state.images.map(it=>({ name:it.name, naturalWidth:it.naturalWidth,naturalHeight:it.naturalHeight,fileType:it.fileType, hotspots: it.hotspots }));
+}
+
+exportJsonBtn.addEventListener('click', ()=>{
+  const data = buildExport();
+  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='hotspots.json'; a.click(); URL.revokeObjectURL(url);
+});
+
+importJsonBtn.addEventListener('click', ()=>{
+  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange = async(e)=>{
+    const f = e.target.files[0]; if(!f) return; const txt = await f.text(); try{ const data = JSON.parse(txt); // merge by name where possible
+      data.forEach(remote=>{
+        const local = state.images.find(x=>x.name===remote.name);
+        if(local){ local.hotspots = remote.hotspots || []; }
+      }); renderMarkers(); renderFileList(); updateHotspotList(); updatePreviewJSON(); alert('Imported'); }catch(err){alert('Bad JSON')}
+  }; inp.click();
+});
+
+function updatePreviewJSON(){ jsonPreview.value = JSON.stringify(buildExport(), null, 2); }
+
+// Annotated image download (draw markers onto canvas)
+function annotatedCanvasForImage(it){
+  return new Promise((res,rej)=>{
+    const img = new Image(); img.onload = ()=>{
+      const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; const ctx = canvas.getContext('2d'); ctx.drawImage(img,0,0);
+      // draw markers
+      it.hotspots.forEach((h,i)=>{
+        const r = Math.max(6, Math.round(Math.min(canvas.width, canvas.height)/60));
+        ctx.beginPath(); ctx.fillStyle = '#7c3aed'; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(2, r/3);
+        ctx.arc(h.x, h.y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+        if(h.label){ ctx.font = Math.round(r*1.2)+'px sans-serif'; ctx.fillStyle='white'; ctx.fillText(h.label, h.x + r + 6, h.y + (r/2)); }
+      });
+      res(canvas);
+    }; img.onerror = rej; img.src = it.dataURL;
+  });
+}
+
+downloadAnnotatedBtn.addEventListener('click', async()=>{
+  if(state.selectedIndex<0) return alert('Select an image');
+  const it = state.images[state.selectedIndex];
+  const canvas = await annotatedCanvasForImage(it);
+  canvas.toBlob(blob=>{ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download = it.name.replace(/\.[^.]+$/,'') + '-annotated.png'; a.click(); URL.revokeObjectURL(url); });
+});
+
+downloadAllAnnotatedBtn.addEventListener('click', async()=>{
+  for(const it of state.images){ const canvas = await annotatedCanvasForImage(it); await new Promise(res=>canvas.toBlob(blob=>{ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download = it.name.replace(/\.[^.]+$/,'') + '-annotated.png'; a.click(); URL.revokeObjectURL(url); setTimeout(res,120); })); }
+});
+
+// XMP sidecar generation (simple wrapper embedding our JSON in a <x:xmpmeta> tag as <rdf:Description Hotspots='...'>)
+function xmpForEntry(it){
+  const hotspotsJSON = JSON.stringify({ name:it.name, naturalWidth:it.naturalWidth, naturalHeight:it.naturalHeight, hotspots: it.hotspots });
+  const xml = `<?xpacket begin=\"\uFEFF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n<rdf:Description rdf:about=\"\" xmlns:hs=\"http://example.com/hotspots/1.0/\" hs:hotspots='${hotspotsJSON.replace(/'/g,"&apos;")}' />\n</rdf:RDF>\n</x:xmpmeta>\n<?xpacket end=\"w\"?>`;
+  return xml;
+}
+
+downloadXMPBtn.addEventListener('click', ()=>{
+  for(const it of state.images){ const xmp = xmpForEntry(it); const blob = new Blob([xmp],{type:'application/xml'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download = it.name.replace(/\.[^.]+$/,'') + '.xmp'; a.click(); URL.revokeObjectURL(url); }
+});
+
+// Embed JSON into JPEG UserComment using piexifjs if JPEG
+embedUserCommentBtn.addEventListener('click', async()=>{
+  if(state.selectedIndex<0) return alert('Select an image');
+  const it = state.images[state.selectedIndex];
+  if(!it.fileType.includes('jpeg') && !it.fileType.includes('jpg')) return alert('Embedding to EXIF is only supported for JPEG files in this tool.');
+
+  // lazy load piexifjs
+  if(typeof piexif === 'undefined'){
+    await loadScript('https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js');
+  }
+  try{
+    const hotspotsJSON = JSON.stringify({ name:it.name, naturalWidth:it.naturalWidth, naturalHeight:it.naturalHeight, hotspots: it.hotspots });
+    const encoded = piexif.dump({Exif:{UserComment: piexif._getExifByteArray(hotspotsJSON)}});
+    const newData = piexif.insert(encoded, it.dataURL);
+    // download new JPEG
+    const a=document.createElement('a'); a.href=newData; a.download = it.name.replace(/\.[^.]+$/,'') + '-with-hotspots.jpg'; a.click();
+    alert('Downloaded JPEG with UserComment (best-effort). Note: not all viewers show UserComment.');
+  }catch(err){console.error(err); alert('Failed to embed EXIF: '+err.message)}
+});
+
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+
+// Toggle labels
+toggleLabelsBtn.addEventListener('click', ()=>{ showLabels = !showLabels; renderMarkers(); toggleLabelsBtn.textContent = showLabels? 'Hide Labels' : 'Show Labels'; });
+
+// Keep marker positions updated on window resize / image resize
+new ResizeObserver(()=>{ renderMarkers(); }).observe(mainImg);
+
+// keyboard shortcuts
+window.addEventListener('keydown',(e)=>{
+  if(e.key==='n') { // next image
+    if(state.images.length===0) return; const idx = (state.selectedIndex+1)%state.images.length; selectImage(idx);
+  }
+  if(e.key==='ArrowRight'){ if(state.images.length===0) return; const idx = Math.min(state.selectedIndex+1, state.images.length-1); selectImage(idx); }
+  if(e.key==='ArrowLeft'){ if(state.images.length===0) return; const idx = Math.max(0, state.selectedIndex-1); selectImage(idx); }
+});
+
+// small helpful UX: clicking on a file in list focuses it
+
+// initialize
+updatePreviewJSON();
+
+</script>
+</body>
+</html>
