@@ -391,3 +391,354 @@ updatePreviewJSON();
 </script>
 </body>
 </html>
+
+
+//Video version
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Video Hotspot Builder — Full God Mode</title>
+  <style>
+    :root{--bg:#071127;--panel:#071a2a;--muted:#9fb0c9;--accent:#ff7b72;--accent2:#7c3aed}
+    *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+    body{margin:0;height:100vh;background:linear-gradient(180deg,#041026 0%,#071127 100%);color:#e6eef6}
+    .app{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px;height:100%}
+    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:10px;padding:12px;overflow:auto}
+    h1{margin:6px 0;font-size:16px}
+    .controls{display:flex;gap:8px;align-items:center}
+    .muted{color:var(--muted);font-size:13px}
+    .drop{border:2px dashed rgba(255,255,255,0.03);padding:10px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:6px}
+    input[type=file]{display:none}
+    .mini{font-size:12px;color:var(--muted)}
+    .video-wrap{position:relative;display:flex;flex-direction:column;align-items:center}
+    .player-area{position:relative;background:#031423;border-radius:8px;padding:8px}
+    video{display:block;max-width:100%;height:auto;border-radius:6px;background:#000}
+    .marker{position:absolute;width:18px;height:18px;border-radius:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;background:var(--accent2);color:white;border:2px solid #fff;cursor:grab}
+    .marker.dragging{opacity:0.9;cursor:grabbing}
+    .timeline{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .timeline input[type=range]{flex:1}
+    .hotspot-list{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+    .hotspot-card{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:6px}
+    .kf-list{display:flex;flex-wrap:wrap;gap:6px}
+    button{background:linear-gradient(180deg,var(--accent),#b43a34);border:0;padding:8px 10px;border-radius:8px;color:white;cursor:pointer}
+    .muted-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:6px 8px;border-radius:8px}
+    textarea{width:100%;height:120px;background:transparent;color:inherit;border-radius:8px;border:1px solid rgba(255,255,255,0.04);padding:8px}
+    .small{font-size:13px;color:var(--muted)}
+    .row{display:flex;gap:6px;align-items:center}
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="panel">
+      <h1>Video Hotspot Builder — Full God Mode</h1>
+      <div class="drop" id="drop">
+        <div style="font-weight:700">Drag & drop video here</div>
+        <div class="mini">Supports MP4, WebM — click to browse</div>
+        <input id="fileinput" type="file" accept="video/*" multiple />
+      </div>
+
+      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
+        <button id="newProject">New Project</button>
+        <button id="importJson" class="muted-btn">Import JSON</button>
+        <button id="exportJson" class="muted-btn">Export JSON</button>
+        <button id="downloadTemplate" class="muted-btn">Download Playback Template</button>
+      </div>
+
+      <div style="margin-top:12px">
+        <label class="small">Project JSON (preview)</label>
+        <textarea id="jsonPreview" readonly></textarea>
+      </div>
+
+      <div style="margin-top:12px">
+        <h3 class="small">Hotspot/Keyframe tips</h3>
+        <ul class="small">
+          <li>Click video to add keyframe for the currently-selected hotspot (or create new)</li>
+          <li>Drag markers to reposition (creates/updates keyframe at current time)</li>
+          <li>Use timeline to scrub and add keyframes at exact time.</li>
+          <li>Export JSON and drop it into the playback template to render interactive video.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <div>
+          <div class="small">Selected video</div>
+          <div id="videoTitle" style="font-weight:700">No video loaded</div>
+          <div id="videoMeta" class="mini"></div>
+        </div>
+        <div class="row">
+          <button id="playPause" class="muted-btn">Play</button>
+          <button id="addHotspot" class="muted-btn">Add Hotspot</button>
+          <button id="toggleLabels" class="muted-btn">Toggle Labels</button>
+        </div>
+      </div>
+
+      <div class="video-wrap" style="margin-top:8px">
+        <div class="player-area" id="playerArea">
+          <video id="video" controls crossorigin playsinline></video>
+        </div>
+
+        <div class="timeline">
+          <div class="small">Time</div>
+          <input type="range" id="timeRange" min="0" max="100" step="0.01" value="0">
+          <div id="timeLabel" class="small">0:00 / 0:00</div>
+        </div>
+
+        <div class="row" style="margin-top:8px;align-items:center;gap:8px">
+          <label class="small">Selected Hotspot:</label>
+          <select id="hotspotSelect"></select>
+          <input id="hotspotLabel" placeholder="hotspot label" />
+          <button id="deleteHotspot" class="muted-btn">Delete</button>
+        </div>
+
+        <div class="hotspot-list" id="hotspotList"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+// Video Hotspot Builder — Full Features (no backend)
+// - Drag/drop videos
+// - Add hotspots (each hotspot has keyframes, each keyframe has time+x+y)
+// - Click on video to add keyframe for selected hotspot (or auto-create)
+// - Drag markers to reposition (creates/updates keyframe at current time)
+// - Timeline scrubber and play/pause
+// - Export/import JSON project
+// - Playback template generator (simple HTML that plays video and renders hotspots/keyframes)
+
+const state = { videos: [], selectedVideoIndex: -1, hotspots: [], showLabels:true };
+
+// DOM
+const drop = document.getElementById('drop');
+const fileinput = document.getElementById('fileinput');
+const videoEl = document.getElementById('video');
+const playerArea = document.getElementById('playerArea');
+const timeRange = document.getElementById('timeRange');
+const timeLabel = document.getElementById('timeLabel');
+const playPauseBtn = document.getElementById('playPause');
+const addHotspotBtn = document.getElementById('addHotspot');
+const hotspotSelect = document.getElementById('hotspotSelect');
+const hotspotLabel = document.getElementById('hotspotLabel');
+const hotspotList = document.getElementById('hotspotList');
+const videoTitle = document.getElementById('videoTitle');
+const videoMeta = document.getElementById('videoMeta');
+const exportJsonBtn = document.getElementById('exportJson');
+const importJsonBtn = document.getElementById('importJson');
+const jsonPreview = document.getElementById('jsonPreview');
+const newProjectBtn = document.getElementById('newProject');
+const downloadTemplateBtn = document.getElementById('downloadTemplate');
+const toggleLabelsBtn = document.getElementById('toggleLabels');
+const deleteHotspotBtn = document.getElementById('deleteHotspot');
+
+// helpers
+function uid(n=6){return Math.random().toString(36).slice(2,2+n)}
+function formatTime(s){ if(isNaN(s)) return '0:00'; const mm = Math.floor(s/60); const ss = Math.floor(s%60).toString().padStart(2,'0'); return `${mm}:${ss}` }
+
+// File handling
+fileinput.addEventListener('change', async (e)=>{ await handleFiles([...e.target.files]); fileinput.value=''; });
+['dragenter','dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,(e)=>{e.preventDefault();e.stopPropagation();}));
+drop.addEventListener('drop', async (e)=>{ const files=[...e.dataTransfer.files].filter(f=>f.type.startsWith('video/')); await handleFiles(files); });
+
+async function handleFiles(files){
+  for(const file of files){
+    const url = URL.createObjectURL(file);
+    const vid = document.createElement('video'); vid.src = url; await vid.play().catch(()=>{}); // attempt load metadata
+    await new Promise(res => vid.onloadedmetadata = res);
+    URL.revokeObjectURL(url);
+    state.videos.push({ id: uid(8), name: file.name, fileType: file.type, url: URL.createObjectURL(file), naturalWidth: vid.videoWidth, naturalHeight: vid.videoHeight, duration: vid.duration, hotspots: [] });
+  }
+  if(state.selectedVideoIndex===-1 && state.videos.length>0) selectVideo(0);
+  renderVideoList(); updatePreview();
+}
+
+function renderVideoList(){ /* minimal: not a visible list for brevity */ }
+
+function selectVideo(i){ state.selectedVideoIndex = i; const v = state.videos[i]; videoEl.src = v.url; videoTitle.textContent = v.name; videoMeta.textContent = `${v.naturalWidth}×${v.naturalHeight} • ${Math.round(v.duration)}s`; state.hotspots = v.hotspots; renderHotspotSelect(); renderHotspotPanel(); }
+
+// simple initial video selection if files added
+
+// timeline
+videoEl.addEventListener('loadedmetadata', ()=>{
+  timeRange.max = videoEl.duration; timeRange.value = 0; timeLabel.textContent = `${formatTime(0)} / ${formatTime(videoEl.duration)}`;
+});
+videoEl.addEventListener('timeupdate', ()=>{
+  timeRange.value = videoEl.currentTime; timeLabel.textContent = `${formatTime(videoEl.currentTime)} / ${formatTime(videoEl.duration)}`; renderMarkers(); });
+
+timeRange.addEventListener('input', ()=>{ videoEl.currentTime = parseFloat(timeRange.value); });
+
+playPauseBtn.addEventListener('click', ()=>{ if(videoEl.paused) { videoEl.play(); playPauseBtn.textContent='Pause'; } else { videoEl.pause(); playPauseBtn.textContent='Play'; }});
+
+// Hotspots structure: [{ id, label, keyframes: [{time, x, y}], color }]
+function createHotspot(){ const h = { id: uid(6), label: 'hotspot-'+(state.hotspots.length+1), keyframes: [], color: randomColor() }; state.hotspots.push(h); renderHotspotSelect(); renderHotspotPanel(); updatePreview(); return h; }
+
+addHotspotBtn.addEventListener('click', ()=>{ const h = createHotspot(); hotspotSelect.value = h.id; hotspotLabel.value = h.label; });
+
+function randomColor(){ const hue = Math.floor(Math.random()*360); return `hsl(${hue} 80% 55%)`; }
+
+function renderHotspotSelect(){ hotspotSelect.innerHTML = ''; state.hotspots.forEach(h=>{ const o = document.createElement('option'); o.value=h.id; o.textContent=h.label; hotspotSelect.appendChild(o); }); }
+
+hotspotSelect.addEventListener('change', ()=>{ const id = hotspotSelect.value; const h = state.hotspots.find(x=>x.id===id); if(h){ hotspotLabel.value = h.label; } renderHotspotPanel(); });
+
+hotspotLabel.addEventListener('change', ()=>{ const h = state.hotspots.find(x=>x.id===hotspotSelect.value); if(h){ h.label = hotspotLabel.value; renderHotspotSelect(); renderHotspotPanel(); updatePreview(); } });
+
+deleteHotspotBtn.addEventListener('click', ()=>{ const id = hotspotSelect.value; const idx = state.hotspots.findIndex(x=>x.id===id); if(idx>=0){ if(!confirm('Delete hotspot?')) return; state.hotspots.splice(idx,1); renderHotspotSelect(); renderHotspotPanel(); updatePreview(); } });
+
+// clicking on video to add keyframe for currently-selected hotspot (or create one)
+playerArea.addEventListener('click', (e)=>{
+  if(!videoEl.src) return;
+  // skip if clicking on marker (we handle marker drag separately)
+  if(e.target.classList && e.target.classList.contains('marker')) return;
+  const rect = videoEl.getBoundingClientRect();
+  const cx = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
+  const cy = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
+  const nx = Math.round((cx/rect.width)*videoEl.videoWidth);
+  const ny = Math.round((cy/rect.height)*videoEl.videoHeight);
+  const t = videoEl.currentTime;
+  let h = state.hotspots.find(x=>x.id===hotspotSelect.value);
+  if(!h){ h = createHotspot(); hotspotSelect.value = h.id; }
+  // push keyframe (if nearby time exists, replace)
+  const existing = h.keyframes.find(k=>Math.abs(k.time - t) < 0.05);
+  if(existing){ existing.x = nx; existing.y = ny; existing.time = t; }
+  else { h.keyframes.push({ time: t, x: nx, y: ny }); h.keyframes.sort((a,b)=>a.time-b.time); }
+  renderHotspotPanel(); updatePreview(); renderMarkers();
+});
+
+// render hotspot cards & keyframes
+function renderHotspotPanel(){ hotspotList.innerHTML='';
+  state.hotspots.forEach(h=>{
+    const card = document.createElement('div'); card.className='hotspot-card';
+    const head = document.createElement('div'); head.style.display='flex'; head.style.justifyContent='space-between'; head.innerHTML = `<div><strong style='color:${h.color}'>${h.label}</strong> <span class='mini'>id:${h.id}</span></div><div class='mini'>${h.keyframes.length} keyframes</div>`;
+    card.appendChild(head);
+    const kfWrap = document.createElement('div'); kfWrap.className='kf-list';
+    h.keyframes.forEach((k,ki)=>{
+      const kbtn = document.createElement('button'); kbtn.className='muted-btn'; kbtn.textContent = `${formatTime(k.time)} @ ${k.x},${k.y}`;
+      kbtn.addEventListener('click', ()=>{ videoEl.currentTime = k.time; });
+      const del = document.createElement('button'); del.className='muted-btn'; del.textContent='✕'; del.addEventListener('click', ()=>{ if(confirm('Delete keyframe?')){ h.keyframes.splice(ki,1); renderHotspotPanel(); updatePreview(); renderMarkers(); }});
+      kfWrap.appendChild(kbtn); kfWrap.appendChild(del);
+    });
+    const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='6px';
+    const gotoBtn = document.createElement('button'); gotoBtn.className='muted-btn'; gotoBtn.textContent='Jump to first'; gotoBtn.addEventListener('click', ()=>{ if(h.keyframes[0]) videoEl.currentTime = h.keyframes[0].time; });
+    actions.appendChild(gotoBtn);
+    card.appendChild(kfWrap); card.appendChild(actions);
+    hotspotList.appendChild(card);
+  });
+}
+
+// markers rendered over video
+function renderMarkers(){ // remove old markers
+  document.querySelectorAll('.marker').forEach(n=>n.remove());
+  if(!videoEl.src) return;
+  const rect = videoEl.getBoundingClientRect();
+  const curr = videoEl.currentTime;
+  state.hotspots.forEach(h=>{
+    // find interpolation between keyframes for current time
+    if(h.keyframes.length===0) return;
+    // if before first or after last, clamp
+    let p;
+    if(curr <= h.keyframes[0].time) { p = { x: h.keyframes[0].x, y: h.keyframes[0].y }; }
+    else if(curr >= h.keyframes[h.keyframes.length-1].time) { p = { x: h.keyframes[h.keyframes.length-1].x, y: h.keyframes[h.keyframes.length-1].y }; }
+    else {
+      // find surrounding
+      for(let i=0;i<h.keyframes.length-1;i++){
+        const a=h.keyframes[i], b=h.keyframes[i+1];
+        if(curr >= a.time && curr <= b.time){
+          const t = (curr - a.time) / (b.time - a.time);
+          // linear interpolation
+          const ix = Math.round(a.x + (b.x - a.x) * t);
+          const iy = Math.round(a.y + (b.y - a.y) * t);
+          p = { x: ix, y: iy };
+          break;
+        }
+      }
+    }
+    if(!p) return;
+    // convert to client coords
+    const left = (p.x / videoEl.videoWidth) * rect.width + rect.left;
+    const top = (p.y / videoEl.videoHeight) * rect.height + rect.top;
+    const el = document.createElement('div'); el.className='marker'; el.style.left = ( (p.x / videoEl.videoWidth) * 100) + '%'; el.style.top = ( (p.y / videoEl.videoHeight) * 100) + '%';
+    el.style.borderColor = '#fff'; el.style.background = h.color; el.dataset.hotspot = h.id; el.title = h.label;
+    el.textContent = state.showLabels ? (h.label.length>1? h.label[0] : h.label) : '';
+    // position relative to playerArea instead of viewport
+    // convert percentages into absolute inside playerArea
+    const wrapRect = playerArea.getBoundingClientRect();
+    el.style.left = ((p.x / videoEl.videoWidth) * 100) + '%';
+    el.style.top = ((p.y / videoEl.videoHeight) * 100) + '%';
+    // absolute positioning required: place inside playerArea
+    el.style.position = 'absolute'; el.style.transform='translate(-50%,-50%)';
+    // attach drag handlers
+    makeDraggable(el, h, p);
+    playerArea.appendChild(el);
+  });
+}
+
+// Dragging markers to create/update keyframe at current time
+function makeDraggable(el, hotspot, currentPos){
+  let dragging=false;
+  el.addEventListener('mousedown',(ev)=>{ ev.preventDefault(); dragging=true; el.classList.add('dragging'); document.addEventListener('mousemove', onmove); document.addEventListener('mouseup', onup, {once:true}); });
+  function onmove(e){ if(!dragging) return; const rect = videoEl.getBoundingClientRect(); const cx = Math.min(Math.max(0, e.clientX - rect.left), rect.width); const cy = Math.min(Math.max(0, e.clientY - rect.top), rect.height); const nx = Math.round((cx/rect.width)*videoEl.videoWidth); const ny = Math.round((cy/rect.height)*videoEl.videoHeight); // update a transient visual
+    el.style.left = (nx / videoEl.videoWidth * 100) + '%'; el.style.top = (ny / videoEl.videoHeight * 100) + '%'; }
+  function onup(e){ dragging=false; el.classList.remove('dragging'); document.removeEventListener('mousemove', onmove);
+    const rect = videoEl.getBoundingClientRect(); const cx = Math.min(Math.max(0, e.clientX - rect.left), rect.width); const cy = Math.min(Math.max(0, e.clientY - rect.top), rect.height); const nx = Math.round((cx/rect.width)*videoEl.videoWidth); const ny = Math.round((cy/rect.height)*videoEl.videoHeight); const t = videoEl.currentTime;
+    // insert or update keyframe near current time
+    const h = hotspot;
+    const existingIndex = h.keyframes.findIndex(k=>Math.abs(k.time - t) < 0.05);
+    if(existingIndex>=0){ h.keyframes[existingIndex].x = nx; h.keyframes[existingIndex].y = ny; h.keyframes[existingIndex].time = t; }
+    else { h.keyframes.push({ time: t, x: nx, y: ny }); h.keyframes.sort((a,b)=>a.time-b.time); }
+    renderHotspotPanel(); updatePreview(); renderMarkers(); }
+}
+
+// export/import
+function buildProject(){
+  if(state.selectedVideoIndex<0) return { videos: [] };
+  const v = state.videos[state.selectedVideoIndex];
+  return { video: { name: v.name, url: v.url, naturalWidth: v.naturalWidth, naturalHeight: v.naturalHeight, duration: v.duration }, hotspots: state.hotspots };
+}
+
+exportJsonBtn.addEventListener('click', ()=>{ const data = buildProject(); const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='video-hotspots.json'; a.click(); URL.revokeObjectURL(a.href); });
+
+importJsonBtn.addEventListener('click', ()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=async(e)=>{ const f = e.target.files[0]; if(!f) return; const txt = await f.text(); try{ const parsed = JSON.parse(txt); // load into state
+    if(parsed.video){ // create placeholder video entry: user must reattach actual file to preserve URLs
+      state.videos = [{ id:uid(8), name: parsed.video.name || 'imported', url: parsed.video.url || '', naturalWidth: parsed.video.naturalWidth || 0, naturalHeight: parsed.video.naturalHeight || 0, duration: parsed.video.duration || 0, hotspots: parsed.hotspots || [] }]; selectVideo(0); updatePreview(); alert('Imported. If video URL is missing, re-upload the video and ensure name matches to merge.'); }
+    }catch(err){alert('Invalid JSON'); } }; inp.click(); });
+
+function updatePreview(){ jsonPreview.value = JSON.stringify(buildProject(), null, 2); }
+
+// new project
+newProjectBtn.addEventListener('click', ()=>{ if(!confirm('Start a new project? Unsaved changes will be lost.')) return; state.videos=[]; state.selectedVideoIndex=-1; state.hotspots=[]; videoEl.src=''; videoTitle.textContent='No video loaded'; videoMeta.textContent=''; updatePreview(); });
+
+// download playback template
+downloadTemplateBtn.addEventListener('click', ()=>{
+  const project = buildProject(); const tpl = playbackTemplate(project);
+  const blob = new Blob([tpl],{type:'text/html'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='video-hotspot-playback.html'; a.click(); URL.revokeObjectURL(a.href);
+});
+
+// toggle labels
+toggleLabelsBtn.addEventListener('click', ()=>{ state.showLabels=!state.showLabels; renderMarkers(); toggleLabelsBtn.textContent = state.showLabels? 'Hide Labels' : 'Show Labels'; });
+
+// initial call
+updatePreview();
+
+// PLAYBACK TEMPLATE generator (simple engine that reads exported JSON and renders hotspots/keyframes)
+function playbackTemplate(project){
+  const json = JSON.stringify(project).replace(/</g, '\\u003c');
+  return `<!doctype html>\n<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Interactive Video Playback</title><style>body{background:#071127;color:#e6eef6;font-family:Inter,system-ui,Arial;padding:20px}.wrapper{max-width:1100px;margin:0 auto;position:relative}.player{position:relative}.hotspot{position:absolute;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}</style></head><body><div class=\"wrapper\"><h2>Interactive Playback</h2><div class=\"player\"><video id=\"v\" controls playsinline style=\"max-width:100%\"></video></div></div><script>const project = ${json}; const container = document.querySelector('.player'); const video = document.getElementById('v'); if(project.video && project.video.url){ video.src = project.video.url; } else { alert('No video URL in project. Replace project.video.url with your hosted video URL in the exported JSON or use a local file.'); }
+  video.addEventListener('loadedmetadata', ()=>{ renderAll(); video.addEventListener('timeupdate', ()=>{ renderAll(); }); });
+  function renderAll(){ document.querySelectorAll('.hotspot').forEach(n=>n.remove()); const rect = video.getBoundingClientRect(); project.hotspots.forEach(h=>{ if(!h.keyframes || h.keyframes.length===0) return; const curr = video.currentTime; let p;
+    if(curr <= h.keyframes[0].time) p = {x:h.keyframes[0].x,y:h.keyframes[0].y};
+    else if(curr >= h.keyframes[h.keyframes.length-1].time) p = {x:h.keyframes[h.keyframes.length-1].x,y:h.keyframes[h.keyframes.length-1].y};
+    else { for(let i=0;i<h.keyframes.length-1;i++){ const a=h.keyframes[i], b=h.keyframes[i+1]; if(curr>=a.time && curr<=b.time){ const t = (curr-a.time)/(b.time-a.time); const ix = Math.round(a.x + (b.x-a.x)*t); const iy = Math.round(a.y + (b.y-a.y)*t); p={x:ix,y:iy}; break;} }}
+    if(!p) return; const el = document.createElement('div'); el.className='hotspot'; el.style.left=(p.x/project.video.naturalWidth*100)+'%'; el.style.top=(p.y/project.video.naturalHeight*100)+'%'; el.style.background = h.color || '#7c3aed'; el.textContent = h.label? h.label[0] : '';
+    // example: show popup when hotspot is visible
+    el.addEventListener('click', ()=>{ alert('Clicked: '+(h.label||h.id)); }); container.appendChild(el);
+  }); }
+</script></body></html>`
+}
+
+</script>
+</body>
+</html>
+
