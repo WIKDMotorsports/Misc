@@ -1,744 +1,2859 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Hotspot Builder — Single File</title>
-  <style>
-    :root{--bg:#0f1724;--panel:#0b1220;--accent:#7c3aed;--muted:#9aa4b2;}
-    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial;color:#e6eef6;background:linear-gradient(180deg,#071027 0%, #07122a 60%);}
-    .app{display:grid;grid-template-columns:380px 1fr;gap:18px;padding:18px;height:100vh;box-sizing:border-box}
-    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:12px;padding:14px;box-shadow:0 6px 20px rgba(2,6,23,0.6);overflow:auto}
-    h2{margin:6px 0 12px;font-size:16px}
-    .drop{border:2px dashed rgba(255,255,255,0.04);padding:14px;border-radius:8px;min-height:84px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px}
-    .files{margin-top:10px;display:flex;flex-direction:column;gap:8px}
-    .file{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);cursor:pointer}
-    .file.selected{outline:2px solid rgba(124,58,237,0.18)}
-    .thumb{width:56px;height:40px;object-fit:cover;border-radius:6px}
-    .meta{font-size:13px;color:var(--muted)}
-    .viewer{display:flex;flex-direction:column;height:100%}
-    .canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;padding:18px}
-    .image-box{position:relative;display:inline-block;border-radius:8px;background:#081021;padding:6px}
-    img#main{display:block;max-width:100%;height:auto;border-radius:6px;user-select:none}
-    .marker{position:absolute;width:18px;height:18px;border-radius:50%;border:2px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.6);transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;background:var(--accent);color:white;font-size:11px;cursor:grab}
-    .marker.dragging{cursor:grabbing;opacity:0.9}
-    .controls{display:flex;gap:8px;align-items:center;margin-top:12px}
-    button{background:linear-gradient(180deg,var(--accent),#5b21b6);border:0;padding:8px 10px;border-radius:8px;color:white;cursor:pointer}
-    .muted-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
-    .inputs{display:flex;gap:8px;align-items:center;margin-top:10px}
-    label{font-size:13px;color:var(--muted)}
-    input[type='text']{padding:6px 8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
-    textarea{width:100%;height:120px;background:transparent;color:inherit;border-radius:8px;border:1px solid rgba(255,255,255,0.04);padding:8px}
-    footer{font-size:12px;color:var(--muted);margin-top:12px}
-    .topbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
-    .hotspot-list{margin-top:8px;display:flex;flex-direction:column;gap:6px}
-    .hotspot-item{display:flex;justify-content:space-between;gap:6px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);font-size:13px}
-    .small{font-size:12px;color:var(--muted)}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="StormPMC product family - Ruggedized asset trackers, gateways, and accessories for military and industrial applications.">
+    <title>Products | StormPMC</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- ICONS -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* ============================================
+           STORMPMC - GLOBAL STYLES
+           Military-Grade Asset Tracking
+           ============================================ */
+
+        /* CSS Variables */
+        :root {
+            --color-bg-primary: #050505;
+            --color-bg-secondary: #0a0a0a;
+            --color-bg-tertiary: #111111;
+            --color-bg-card: rgba(255, 255, 255, 0.02);
+            --color-border: rgba(255, 255, 255, 0.08);
+            --color-border-hover: rgba(255, 255, 255, 0.15);
+            --color-text-primary: #ffffff;
+            --color-text-secondary: rgba(255, 255, 255, 0.6);
+            --color-text-tertiary: rgba(255, 255, 255, 0.4);
+            --color-text-muted: rgba(255, 255, 255, 0.3);
+            --color-accent: #4ade80;
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-display: 'Space Grotesk', sans-serif;
+            --transition-fast: 0.2s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+            --border-radius-xl: 20px;
+        }
+
+        /* Reset & Base */
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            background: var(--color-bg-primary);
+            color: var(--color-text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        a {
+            text-decoration: none;
+            color: inherit;
+            transition: var(--transition-normal);
+        }
+
+        ul, ol {
+            list-style: none;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* ============================================
+           UTILITY CLASSES
+           ============================================ */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 60px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 24px;
+            }
+        }
+
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            border: 0;
+        }
+
+        /* ============================================
+           BACKGROUND EFFECTS
+           ============================================ */
+        .grid-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 80px 80px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb {
+            position: fixed;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.02) 0%, transparent 70%);
+            border-radius: 50%;
+            top: -300px;
+            right: -300px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .glow-orb-left {
+            position: fixed;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 255, 255, 0.015) 0%, transparent 70%);
+            border-radius: 50%;
+            bottom: -200px;
+            left: -200px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ============================================
+           NAVIGATION
+           ============================================ */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 1000;
+            background: rgba(5, 5, 5, 0.85);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--color-border);
+            transition: var(--transition-normal);
+        }
+
+        .nav.scrolled {
+            padding: 15px 60px;
+            background: rgba(5, 5, 5, 0.95);
+        }
+
+        .logo {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 4px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-icon {
+            width: 32px;
+            height: 32px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 700;
+            transition: var(--transition-normal);
+        }
+
+        .logo:hover .logo-icon {
+            border-color: rgba(255, 255, 255, 0.6);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-center {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-link {
+            color: var(--color-text-tertiary);
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 10px 18px;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition-normal);
+            position: relative;
+        }
+
+        .nav-link:hover {
+            color: var(--color-text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .nav-link.active {
+            color: var(--color-text-primary);
+        }
+
+        .nav-link.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 2px;
+            background: var(--color-text-primary);
+        }
+
+        /* Dropdown */
+        .nav-dropdown {
+            position: relative;
+        }
+
+        .nav-dropdown-content {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(10px);
+            background: rgba(10, 10, 10, 0.98);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-md);
+            padding: 12px;
+            min-width: 220px;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition-normal);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .nav-dropdown:hover .nav-dropdown-content {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .nav-dropdown-item {
+            display: block;
+            padding: 12px 16px;
+            color: var(--color-text-secondary);
+            font-size: 13px;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition-fast);
+        }
+
+        .nav-dropdown-item:hover {
+            color: var(--color-text-primary);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-dropdown-item span {
+            display: block;
+            font-size: 10px;
+            color: var(--color-text-muted);
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .nav-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--color-text-primary);
+            padding: 10px 24px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            border-radius: var(--border-radius-sm);
+            transition: var(--transition-normal);
+            cursor: pointer;
+        }
+
+        .nav-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* Mobile Menu */
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--color-text-primary);
+            cursor: pointer;
+            padding: 10px;
+            width: 44px;
+            height: 44px;
+            position: relative;
+            z-index: 1002;
+        }
+
+        .mobile-menu-btn span {
+            display: block;
+            width: 22px;
+            height: 2px;
+            background: currentColor;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: var(--transition-normal);
+        }
+
+        .mobile-menu-btn span:nth-child(1) {
+            top: 14px;
+        }
+
+        .mobile-menu-btn span:nth-child(2) {
+            top: 21px;
+        }
+
+        .mobile-menu-btn span:nth-child(3) {
+            top: 28px;
+        }
+
+        /* Hamburger to X animation */
+        .mobile-menu-btn.active span:nth-child(1) {
+            top: 21px;
+            transform: translateX(-50%) rotate(45deg);
+        }
+
+        .mobile-menu-btn.active span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-menu-btn.active span:nth-child(3) {
+            top: 21px;
+            transform: translateX(-50%) rotate(-45deg);
+        }
+
+        /* Mobile Menu Overlay */
+        .mobile-menu {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 5, 5, 0.98);
+            backdrop-filter: blur(20px);
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition-normal);
+            display: flex;
+            flex-direction: column;
+            padding: 100px 24px 40px;
+            overflow-y: auto;
+        }
+
+        .mobile-menu.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .mobile-menu-links {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 30px;
+        }
+
+        .mobile-menu-link {
+            display: block;
+            padding: 16px 20px;
+            font-size: 16px;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            border-radius: var(--border-radius-md);
+            transition: var(--transition-normal);
+            border: 1px solid transparent;
+        }
+
+        .mobile-menu-link:hover,
+        .mobile-menu-link.active {
+            color: var(--color-text-primary);
+            background: rgba(255, 255, 255, 0.03);
+            border-color: var(--color-border);
+        }
+
+        .mobile-menu-divider {
+            height: 1px;
+            background: var(--color-border);
+            margin: 20px 0;
+        }
+
+        .mobile-menu-products {
+            padding: 0 20px;
+            margin-bottom: 30px;
+        }
+
+        .mobile-menu-products-label {
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        .mobile-menu-product {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 0;
+            border-bottom: 1px solid var(--color-border);
+            color: var(--color-text-tertiary);
+            font-size: 14px;
+        }
+
+        .mobile-menu-product:hover {
+            color: var(--color-text-primary);
+        }
+
+        .mobile-menu-product span {
+            font-size: 11px;
+            color: var(--color-text-muted);
+        }
+
+        .mobile-menu-cta {
+            margin-top: auto;
+            padding: 20px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .mobile-menu-cta .btn {
+            width: 100%;
+        }
+
+        /* Mobile Menu Close Button */
+        .mobile-menu-close {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition: var(--transition-normal);
+        }
+
+        .mobile-menu-close:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--color-text-primary);
+        }
+
+        /* Mobile Navigation Links */
+        .mobile-nav {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .mobile-nav-link {
+            display: block;
+            padding: 18px 24px;
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 500;
+            color: var(--color-text-secondary);
+            border-radius: var(--border-radius-md);
+            transition: var(--transition-normal);
+            animation: fadeInRight 0.4s ease forwards;
+            opacity: 0;
+        }
+
+        .mobile-nav-link:nth-child(1) { animation-delay: 0.1s; }
+        .mobile-nav-link:nth-child(2) { animation-delay: 0.15s; }
+        .mobile-nav-link:nth-child(3) { animation-delay: 0.2s; }
+        .mobile-nav-link:nth-child(4) { animation-delay: 0.25s; }
+        .mobile-nav-link:nth-child(5) { animation-delay: 0.3s; }
+
+        .mobile-nav-link:hover {
+            color: var(--color-text-primary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* Mobile Dropdown */
+        .mobile-dropdown {
+            animation: fadeInRight 0.4s ease forwards;
+            animation-delay: 0.1s;
+            opacity: 0;
+        }
+
+        .mobile-dropdown-content {
+            display: none;
+            flex-direction: column;
+            padding: 10px 0 10px 24px;
+            gap: 4px;
+        }
+
+        .mobile-dropdown-content a {
+            display: block;
+            padding: 12px 20px;
+            font-size: 16px;
+            color: var(--color-text-tertiary);
+            border-left: 2px solid var(--color-border);
+            transition: var(--transition-normal);
+        }
+
+        .mobile-dropdown-content a:hover {
+            color: var(--color-text-primary);
+            border-left-color: var(--color-text-primary);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Mobile Nav Footer */
+        .mobile-nav-footer {
+            padding-top: 30px;
+            border-top: 1px solid var(--color-border);
+            margin-top: auto;
+        }
+
+        @keyframes fadeInRight {
+            from {
+                opacity: 0;
+                transform: translateX(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        /* Body scroll lock when menu open */
+        body.menu-open {
+            overflow: hidden;
+        }
+
+        @media (max-width: 1024px) {
+            .nav {
+                padding: 15px 24px;
+            }
+            
+            .nav-center {
+                display: none;
+            }
+            
+            .nav-right .nav-btn {
+                display: none;
+            }
+            
+            .mobile-menu-btn {
+                display: block;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav {
+                padding: 12px 16px;
+            }
+            
+            .logo {
+                font-size: 14px;
+                letter-spacing: 2px;
+            }
+            
+            .logo-icon {
+                width: 28px;
+                height: 28px;
+                font-size: 10px;
+            }
+        }
+
+        /* ============================================
+           BUTTONS
+           ============================================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-family: var(--font-primary);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 16px 36px;
+            border-radius: var(--border-radius-sm);
+            border: none;
+            cursor: pointer;
+            transition: var(--transition-normal);
+        }
+
+        .btn-primary {
+            background: var(--color-text-primary);
+            color: var(--color-bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--color-text-secondary);
+            padding: 10px 0;
+        }
+
+        .btn-ghost:hover {
+            color: var(--color-text-primary);
+        }
+
+        .btn-ghost svg {
+            width: 16px;
+            height: 16px;
+            transition: transform var(--transition-normal);
+        }
+
+        .btn-ghost:hover svg {
+            transform: translateX(4px);
+        }
+
+        .btn-lg {
+            padding: 20px 48px;
+            font-size: 13px;
+        }
+
+        .btn-sm {
+            padding: 12px 24px;
+            font-size: 11px;
+        }
+
+        /* ============================================
+           SECTION STYLES
+           ============================================ */
+        .section {
+            position: relative;
+            z-index: 1;
+            padding: 120px 0;
+        }
+
+        .section-sm {
+            padding: 80px 0;
+        }
+
+        .section-lg {
+            padding: 160px 0;
+        }
+
+        .section-header {
+            text-align: center;
+            max-width: 700px;
+            margin: 0 auto 80px;
+        }
+
+        .section-label {
+            display: inline-block;
+            padding: 8px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--color-border);
+            border-radius: 30px;
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(32px, 5vw, 52px);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 20px;
+        }
+
+        .section-subtitle {
+            font-size: 17px;
+            color: var(--color-text-secondary);
+            max-width: 600px;
+            margin: 0 auto 60px; /* Increased bottom margin for better spacing */
+            line-height: 1.7;
+        }
+
+        /* ============================================
+           HERO SECTION
+           ============================================ */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+        }
+
+        .hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            margin-bottom: 40px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--color-accent);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(42px, 5.5vw, 72px);
+            font-weight: 700;
+            line-height: 1.08;
+            margin-bottom: 28px;
+            letter-spacing: -1px;
+        }
+
+        .hero-title .thin {
+            font-weight: 300;
+            color: var(--color-text-secondary);
+        }
+
+        .hero-description {
+            font-size: 17px;
+            color: var(--color-text-tertiary);
+            line-height: 1.8;
+            margin-bottom: 45px;
+            max-width: 480px;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 60px;
+        }
+
+        .trust-indicators {
+            display: flex;
+            gap: 50px;
+        }
+
+        .trust-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .trust-number {
+            font-family: var(--font-display);
+            font-size: 30px;
+            font-weight: 600;
+        }
+
+        .trust-label {
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+        }
+
+        /* Hero Visual */
+        .hero-visual {
+            position: relative;
+            height: 600px;
+        }
+
+        .device-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        .device-main {
+            position: absolute;
+            width: 60%;
+            height: 65%;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-xl);
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: var(--transition-slow);
+        }
+
+        .device-main::before {
+            content: 'MTRAC ASSET TRACKER';
+            color: var(--color-text-muted);
+            font-size: 12px;
+            letter-spacing: 3px;
+        }
+
+        .device-main:hover {
+            border-color: var(--color-border-hover);
+            transform: translate(-50%, -50%) scale(1.02);
+        }
+
+        .device-accent {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: var(--border-radius-lg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: var(--color-text-muted);
+            transition: var(--transition-slow);
+        }
+
+        .device-accent:hover {
+            border-color: var(--color-border);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .device-accent-1 {
+            width: 32%;
+            height: 30%;
+            right: 0;
+            top: 5%;
+        }
+
+        .device-accent-2 {
+            width: 28%;
+            height: 22%;
+            left: 0;
+            bottom: 10%;
+        }
+
+        .connection-line {
+            position: absolute;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+            width: 100px;
+        }
+
+        .connection-line-1 {
+            top: 22%;
+            right: 32%;
+            transform: rotate(-25deg);
+        }
+
+        .connection-line-2 {
+            bottom: 28%;
+            left: 28%;
+            transform: rotate(20deg);
+        }
+
+        @media (max-width: 1024px) {
+            .hero-grid {
+                grid-template-columns: 1fr;
+                gap: 60px;
+            }
+            
+            .hero-visual {
+                height: 400px;
+            }
+            
+            .trust-indicators {
+                flex-wrap: wrap;
+                gap: 30px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .hero {
+                min-height: auto;
+                padding: 120px 0 80px;
+            }
+            
+            .hero-cta {
+                flex-direction: column;
+            }
+            
+            .hero-cta .btn {
+                width: 100%;
+            }
+            
+            .hero-visual {
+                display: none;
+            }
+        }
+
+        /* ============================================
+           CARDS
+           ============================================ */
+        .card {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-lg);
+            padding: 40px;
+            transition: var(--transition-normal);
+        }
+
+        .card:hover {
+            border-color: var(--color-border-hover);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .card-icon {
+            width: 56px;
+            height: 56px;
+            background: transparent;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            margin-bottom: 24px;
+            font-size: 22px;
+            color: var(--color-text-secondary);
+            padding: 0;
+        }
+
+        .card-title {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .card-text {
+            font-size: 14px;
+            color: var(--color-text-tertiary);
+            line-height: 1.7;
+        }
+
+        .card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+        }
+
+        .card-link:hover {
+            color: var(--color-text-primary);
+        }
+
+        .card-link svg {
+            width: 14px;
+            height: 14px;
+            transition: transform var(--transition-normal);
+        }
+
+        .card-link:hover svg {
+            transform: translateX(4px);
+        }
+
+        /* Product Card */
+        .product-card {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-lg);
+            overflow: hidden;
+            transition: var(--transition-normal);
+        }
+
+        .product-card:hover {
+            border-color: var(--color-border-hover);
+            transform: translateY(-4px);
+        }
+
+        .product-card-image {
+            /* height: 240px;  <-- REMOVED FIXED HEIGHT */
+            aspect-ratio: 16/9; /* ADDED 16:9 RATIO */
+            width: 100%;
+            background: linear-gradient(135deg, var(--color-bg-tertiary), var(--color-bg-secondary));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-muted);
+            font-size: 12px;
+            letter-spacing: 2px;
+            position: relative;
+            padding: 0; /* Clear padding to let image fill */
+        }
+
+        .product-card-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Ensures image fills the 16:9 container */
+        }
+
+        .product-card-tag {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            padding: 6px 12px;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            font-size: 9px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+            z-index: 2; /* Ensure tag is above image */
+        }
+
+        .product-card-content {
+            padding: 28px;
+        }
+
+        .product-card-name {
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .product-card-desc {
+            font-size: 13px;
+            color: var(--color-text-tertiary);
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .product-card-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+            white-space: nowrap; /* Prevent wrapping */
+        }
+
+        .product-card-link svg {
+            width: 16px;
+            height: 16px;
+            transition: transform var(--transition-normal);
+        }
+
+        .product-card-link:hover {
+            color: var(--color-text-primary);
+        }
+
+        .product-card-link:hover svg {
+            transform: translateX(4px);
+        }
+
+        /* Hero Image Styles */
+        .page-hero-image {
+            width: 100%;
+            max-width: 1000px;
+            margin-top: 40px;
+            border-radius: var(--border-radius-lg);
+            border: 1px solid var(--color-border);
+            aspect-ratio: 16/9;
+            object-fit: cover;
+        }
+
+        .page-hero-video {
+            margin-top: 0; /* Reset top margin, spacing handled by subtitle */
+        }
+
+        /* ... existing styles ... */
+        /* ============================================
+           FEATURES GRID
+           ============================================ */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .features-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ============================================
+           PRODUCTS GRID
+           ============================================ */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .products-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ============================================
+           STATS BAR
+           ============================================ */
+        .stats-bar {
+            background: var(--color-bg-tertiary);
+            border-top: 1px solid var(--color-border);
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px;
+            padding: 50px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 36px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--color-text-tertiary);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 30px;
+            }
+        }
+
+        /* ============================================
+           CTA SECTION
+           ============================================ */
+        .cta-section {
+            background: linear-gradient(180deg, var(--color-bg-secondary), var(--color-bg-primary));
+            text-align: center;
+        }
+
+        .cta-content {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .cta-title {
+            font-family: var(--font-display);
+            font-size: clamp(28px, 4vw, 42px);
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .cta-text {
+            font-size: 16px;
+            color: var(--color-text-secondary);
+            margin-bottom: 40px;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        @media (max-width: 640px) {
+            .cta-buttons {
+                flex-direction: column;
+            }
+        }
+
+        /* ============================================
+           FOOTER
+           ============================================ */
+        .footer {
+            background: var(--color-bg-secondary);
+            border-top: 1px solid var(--color-border);
+            padding: 80px 0 40px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .footer-grid {
+            display: grid;
+            grid-template-columns: 1.5fr repeat(3, 1fr);
+            gap: 60px;
+            margin-bottom: 60px;
+        }
+
+        .footer-brand p {
+            font-size: 14px;
+            color: var(--color-text-tertiary);
+            margin-top: 20px;
+            max-width: 280px;
+            line-height: 1.7;
+        }
+
+        .footer-heading {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .footer-links li {
+            margin-bottom: 14px;
+        }
+
+        .footer-links a {
+            font-size: 14px;
+            color: var(--color-text-tertiary);
+        }
+
+        .footer-links a:hover {
+            color: var(--color-text-primary);
+        }
+
+        .footer-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 40px;
+            border-top: 1px solid var(--color-border);
+        }
+
+        .footer-copyright {
+            font-size: 13px;
+            color: var(--color-text-muted);
+        }
+
+        .footer-legal {
+            display: flex;
+            gap: 30px;
+        }
+
+        .footer-legal a {
+            font-size: 12px;
+            color: var(--color-text-muted);
+        }
+
+        .footer-legal a:hover {
+            color: var(--color-text-secondary);
+        }
+
+        @media (max-width: 1024px) {
+            .footer-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 40px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .footer-bottom {
+                flex-direction: column;
+                gap: 20px;
+                text-align: center;
+            }
+        }
+
+        /* ============================================
+           BREADCRUMBS
+           ============================================ */
+        .breadcrumbs {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 12px;
+            color: var(--color-text-muted);
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .breadcrumbs a {
+            color: var(--color-text-tertiary);
+        }
+
+        .breadcrumbs a:hover {
+            color: var(--color-text-primary);
+        }
+
+        .breadcrumbs span {
+            color: var(--color-text-muted);
+        }
+
+        /* ============================================
+           PRODUCT PAGE
+           ============================================ */
+        .product-hero {
+            padding-top: 140px;
+            padding-bottom: 80px;
+        }
+
+        .product-hero-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 80px;
+            align-items: center;
+        }
+
+        .product-image {
+            background: var(--color-bg-card);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-xl);
+            height: 500px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--color-text-muted);
+            font-size: 14px;
+            letter-spacing: 3px;
+        }
+
+        .product-info .section-label {
+            margin-bottom: 20px;
+        }
+
+        .product-title {
+            font-family: var(--font-display);
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 700;
+            margin-bottom: 20px;
+        }
+
+        .product-tagline {
+            font-size: 18px;
+            color: var(--color-text-secondary);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .product-description {
+            font-size: 15px;
+            color: var(--color-text-tertiary);
+            line-height: 1.8;
+            margin-bottom: 40px;
+        }
+
+        .product-cta {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 50px;
+        }
+
+        .product-highlights {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 30px;
+        }
+
+        .highlight-item {
+            text-align: center;
+        }
+
+        .highlight-value {
+            font-family: var(--font-display);
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .highlight-label {
+            font-size: 10px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+        }
+
+        @media (max-width: 1024px) {
+            .product-hero-grid {
+                grid-template-columns: 1fr;
+                gap: 50px;
+            }
+            
+            .product-image {
+                height: 350px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            .product-cta {
+                flex-direction: column;
+            }
+            
+            .product-highlights {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        /* Specs Table */
+        .specs-section {
+            background: var(--color-bg-secondary);
+        }
+
+        .specs-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .specs-table th,
+        .specs-table td {
+            padding: 20px 24px;
+            text-align: left;
+            border-bottom: 1px solid var(--color-border);
+        }
+
+        .specs-table th {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .specs-table td {
+            font-size: 14px;
+            color: var(--color-text-secondary);
+        }
+
+        .specs-table td:first-child {
+            color: var(--color-text-primary);
+            font-weight: 500;
+        }
+
+        .specs-table tr:hover td {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        /* Product Navigation */
+        .product-nav {
+            background: var(--color-bg-tertiary);
+            border-top: 1px solid var(--color-border);
+            border-bottom: 1px solid var(--color-border);
+            padding: 20px 0;
+            overflow-x: auto;
+        }
+
+        .product-nav-inner {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            min-width: max-content;
+        }
+
+        .product-nav-label {
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+            margin-right: 20px;
+            white-space: nowrap;
+        }
+
+        .product-nav-link {
+            padding: 10px 20px;
+            font-size: 12px;
+            color: var(--color-text-tertiary);
+            border: 1px solid transparent;
+            border-radius: var(--border-radius-sm);
+            white-space: nowrap;
+            transition: var(--transition-normal);
+        }
+
+        .product-nav-link:hover {
+            color: var(--color-text-secondary);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .product-nav-link.active {
+            color: var(--color-text-primary);
+            background: rgba(255, 255, 255, 0.05);
+            border-color: var(--color-border);
+        }
+
+        /* ============================================
+           PAGE HEADER
+           ============================================ */
+        .page-header {
+            padding-top: 80px;
+            padding-bottom: 40px;
+            text-align: center;
+            min-height: 100vh; /* Full screen height */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .page-title {
+            font-family: var(--font-display);
+            font-size: clamp(36px, 5vw, 56px);
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .page-subtitle {
+            font-size: 17px;
+            color: var(--color-text-secondary);
+            max-width: 600px;
+            margin: 0 auto 32px;
+            line-height: 1.7;
+        }
+
+        /* ============================================
+           FORMS
+           ============================================ */
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--color-text-secondary);
+            margin-bottom: 10px;
+        }
+
+        .form-input,
+        .form-textarea,
+        .form-select {
+            width: 100%;
+            padding: 16px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--color-border);
+            border-radius: var(--border-radius-sm);
+            color: var(--color-text-primary);
+            font-family: var(--font-primary);
+            font-size: 14px;
+            transition: var(--transition-normal);
+        }
+
+        .form-input:focus,
+        .form-textarea:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .form-input::placeholder,
+        .form-textarea::placeholder {
+            color: var(--color-text-muted);
+        }
+
+        .form-textarea {
+            min-height: 150px;
+            resize: vertical;
+        }
+
+        .form-select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23666' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            cursor: pointer;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 640px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ============================================
+           SCROLL INDICATOR
+           ============================================ */
+        .scroll-down-container {
+            margin-top: 32px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .scroll-down-btn {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            color: var(--color-text-tertiary);
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            transition: var(--transition-normal);
+            opacity: 0.7;
+        }
+
+        .scroll-down-btn svg {
+            width: 20px;
+            height: 20px;
+            transition: var(--transition-normal);
+        }
+
+        .scroll-down-btn:hover {
+            color: var(--color-text-primary);
+            opacity: 1;
+        }
+
+        .scroll-down-btn:hover svg {
+            transform: translateY(5px);
+            color: var(--color-accent);
+        }
+
+        /* ============================================
+           VIDEO SECTION
+           ============================================ */
+        .video-wrapper {
+            position: relative;
+            border-radius: var(--border-radius-xl);
+            border: 1px solid var(--color-border);
+            overflow: hidden;
+            background: var(--color-bg-card);
+            aspect-ratio: 16/9;
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .video-controls-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 30px;
+            background: linear-gradient(to top, rgba(5, 5, 5, 0.9), transparent);
+            display: flex;
+            justify-content: flex-end;
+            gap: 16px;
+            opacity: 0;
+            transition: opacity var(--transition-normal);
+        }
+
+        .video-wrapper:hover .video-controls-overlay {
+            opacity: 1;
+        }
+
+        .video-control-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: var(--color-text-primary);
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-normal);
+            backdrop-filter: blur(4px);
+            padding: 0;
+        }
+
+        .video-control-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+            color: var(--color-accent);
+            border-color: var(--color-accent);
+        }
+
+        .video-control-btn svg {
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
+        /* ============================================
+           RESPONSIVE UTILITIES
+           ============================================ */
+        @media (max-width: 768px) {
+            .product-nav {
+                display: none !important;
+            }
+        }
+
+        /* ============================================
+           ANIMATIONS
+           ============================================ */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-in {
+            animation: fadeInUp 0.6s ease forwards;
+        }
+
+        .animate-delay-1 { animation-delay: 0.1s; }
+        .animate-delay-2 { animation-delay: 0.2s; }
+        .animate-delay-3 { animation-delay: 0.3s; }
+        .animate-delay-4 { animation-delay: 0.4s; }
+
+        /* ============================================
+           SCROLL PROGRESS
+           ============================================ */
+        .scroll-progress {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 2px;
+            background: var(--color-text-primary);
+            z-index: 1001;
+            transform-origin: left;
+            transform: scaleX(0);
+        }
+
+        /* ============================================
+           LIGHTBOX NAV COMPONENT
+           ============================================ */
+        
+        /* Container Structure - Fixed Bottom */
+        .lightbox-cta-container {
+            display: flex;
+            gap: 8px; /* Compact gap */
+            align-items: center;
+            justify-content: center;
+            flex-wrap: nowrap; /* CRITICAL: STRICT LINEAR LAYOUT */
+            
+            position: fixed; /* Fixed to viewport */
+            bottom: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 900; /* High z-index but below mobile menu */
+            
+            opacity: 1; 
+            transition: none;
+            
+            max-width: 90%;
+            width: fit-content;
+            padding: 0 12px; 
+            box-sizing: border-box;
+        }
+
+        /* Entry Animation Logic */
+        .lightbox-cta-container > *,
+        .lightbox-cta-container .filter-wrapper { 
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.5s cubic-bezier(0.16, 1, 0.3, 1), 
+                        transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .lightbox-cta-container > *:nth-child(1) { transition-delay: 0ms; }
+        .lightbox-cta-container > *:nth-child(2) { transition-delay: 50ms; }
+        .lightbox-cta-container > *:nth-child(3) { transition-delay: 100ms; }
+        .lightbox-cta-container > *:nth-child(4) { transition-delay: 150ms; }
+        .lightbox-cta-container > *:nth-child(5) { transition-delay: 200ms; }
+
+        .lightbox-cta-container.visible > *,
+        .lightbox-cta-container.visible .filter-wrapper {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Nav Buttons (Arrows & Filter) - INTENSE GLASS */
+        .lightbox-nav {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition-normal);
+            outline: none;
+            
+            width: 40px; 
+            height: 40px;
+            
+            /* Glassmorphism settings */
+            background: rgba(255, 255, 255, 0.03); 
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            
+            color: var(--color-text-secondary);
+            border-radius: var(--border-radius-sm);
+            padding: 0;
+            position: relative;
+            flex-shrink: 0; /* NEVER SHRINK ICONS */
+        }
+
+        .lightbox-nav:hover, .lightbox-nav.active {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            color: var(--color-text-primary);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        .lightbox-nav:active {
+            transform: translateY(0);
+        }
+
+        /* Filter Menu Logic */
+        .filter-wrapper {
+            position: relative;
+            flex-shrink: 0; /* Wrapper also doesn't shrink */
+        }
+
+        .filter-menu {
+            position: absolute;
+            bottom: calc(100% + 12px);
+            left: 0;
+            transform: translateY(10px);
+            
+            /* Sizing */
+            min-width: 160px;
+            width: auto; /* Handled by JS dynamically */
+            box-sizing: border-box; 
+            
+            /* INTENSE Glassmorphism Menu */
+            background: rgba(10, 10, 10, 0.65); /* More transparent for blur effect */
+            backdrop-filter: blur(24px); /* Heavier blur for larger area */
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            
+            border-radius: var(--border-radius-sm);
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            
+            opacity: 0;
+            visibility: hidden;
+            transition: var(--transition-normal);
+            pointer-events: none;
+        }
+
+        .filter-menu.active {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .filter-header {
+            font-family: var(--font-display);
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            color: var(--color-text-muted);
+            padding: 10px 12px 6px;
+            font-weight: 600;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 6px;
+        }
+
+        .filter-option {
+            display: block;
+            padding: 10px 16px;
+            font-size: 13px;
+            color: var(--color-text-secondary);
+            text-decoration: none;
+            border-radius: 2px;
+            transition: all 0.2s ease;
+            position: relative;
+            
+            /* Text Safety for small screens */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .filter-option:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--color-text-primary);
+            padding-left: 20px;
+        }
+
+        /* General Button Base */
+        .btn-wikd {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            height: 40px;
+            padding: 0 20px;
+            
+            font-family: var(--font-primary);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            text-decoration: none;
+            cursor: pointer;
+            transition: var(--transition-normal);
+            line-height: 1;
+            user-select: none;
+            text-align: center;
+            border-radius: var(--border-radius-sm);
+            white-space: nowrap; /* NEVER WRAP TEXT */
+            
+            /* Responsive Flex Logic */
+            min-width: 110px; /* Default min-width for desktop */
+        }
+
+        /* Primary CTA - Solid Contrast */
+        .lightbox-btn {
+            background: var(--color-text-primary);
+            color: var(--color-bg-primary);
+            border: 1px solid var(--color-text-primary);
+            /* Solid buttons usually don't have backdrop blur as they are opaque */
+        }
+
+        .lightbox-btn:hover {
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px rgba(255, 255, 255, 0.2);
+        }
+
+        /* Secondary Button - INTENSE GLASS */
+        .lightbox-btn-secondary {
+            /* Glassmorphism */
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            
+            color: var(--color-text-primary);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .lightbox-btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .lightbox-nav.disabled {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        /* --- MOBILE RESPONSIVE TWEAKS --- */
+        @media (max-width: 600px) {
+            .lightbox-cta-container {
+                gap: 6px; /* Tighter gap */
+                width: 95%; /* Use more width on mobile */
+            }
+            
+            /* Text Buttons become flexible to fit space */
+            .btn-wikd {
+                min-width: 0; /* Allow shrinking */
+                width: auto;
+                padding: 0 10px;
+                font-size: 10px;
+                letter-spacing: 0.5px;
+                flex-grow: 1; /* Share available space equally */
+                flex-basis: 0;
+                overflow: hidden;
+                text-overflow: ellipsis; /* Graceful degrade if impossibly small */
+            }
+
+            /* Icons stay fixed size */
+            .lightbox-nav {
+                width: 36px;
+                height: 36px;
+            }
+            
+            .btn-wikd {
+                height: 36px;
+            }
+        }
+
+        /* Lightbox Backdrop Gradient */
+        .lightbox-backdrop {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 140px; /* Covers the nav area comfortably */
+            background: linear-gradient(to top, var(--color-bg-primary) 20%, rgba(5, 5, 5, 0) 100%);
+            z-index: 899; /* Below nav (900) but above content */
+            pointer-events: none; /* Let clicks pass through to content if needed, though nav catches them */
+            mask-image: linear-gradient(to bottom, transparent, black); /* Softens the top edge */
+            -webkit-mask-image: linear-gradient(to bottom, transparent, black);
+        }
+    </style>
 </head>
 <body>
-  <div class="app">
-    <div class="panel">
-      <div class="topbar">
-        <h2>Hotspot Builder</h2>
-        <div class="small">Single-file • Local • No backend</div>
-      </div>
+    <!-- Background Effects -->
+    <div class="grid-overlay"></div>
+    <div class="glow-orb"></div>
+    <!-- Nav Backdrop for contrast -->
+    <div class="lightbox-backdrop"></div>
 
-      <div class="drop" id="drop">
-        <div style="font-weight:600">Drag & drop images here</div>
-        <div class="small">Supports JPG, PNG, WebP. Click to browse.</div>
-        <input id="fileinput" type="file" accept="image/*" multiple style="display:none" />
-      </div>
+    <!-- Navigation -->
+    <nav class="nav" id="navbar">
+        <a href="index.html" class="logo">
+            <div class="logo-icon">S</div>
+            STORMPMC
+        </a>
+        
+        <div class="nav-center">
+            <div class="nav-dropdown">
+                <a href="products.html" class="nav-link active">Products</a>
+                <div class="nav-dropdown-content">
+                    <a href="product-mtrac.html" class="nav-dropdown-item">
+                        MTRAC
+                        <span>Asset Tracker</span>
+                    </a>
+                    <a href="product-gateway.html" class="nav-dropdown-item">
+                        Gateway
+                        <span>Mesh Network Hub</span>
+                    </a>
+                    <a href="products.html" class="nav-dropdown-item">
+                        View All Products
+                        <span>Complete Family</span>
+                    </a>
+                </div>
+            </div>
+            <a href="technology.html" class="nav-link">Technology</a>
+            <a href="industries.html" class="nav-link">Industries</a>
+            <a href="about.html" class="nav-link">About</a>
+        </div>
+        
+        <div class="nav-right">
+            <a href="contact.html" class="nav-btn">Contact Sales</a>
+            <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </nav>
 
-      <div class="files" id="filelist" aria-live="polite"></div>
-
-      <div style="margin-top:12px;display:flex;gap:6px;flex-wrap:wrap">
-        <button id="exportJson">Export JSON</button>
-        <button id="importJson" class="muted-btn">Import JSON</button>
-        <button id="downloadAllAnnotated" class="muted-btn">Download Annotated Images</button>
-        <button id="downloadXMP" class="muted-btn">Download .XMP Sidecars</button>
-      </div>
-
-      <div style="margin-top:12px">
-        <label class="small">Bulk JSON output (preview)</label>
-        <textarea id="jsonPreview" readonly></textarea>
-      </div>
-
-      <footer>Tips: click an image to select → click on the image to add marker → drag to move → right-click to delete. Export to JSON or XMP sidecar.</footer>
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <button class="mobile-menu-close" id="mobileMenuClose" aria-label="Close menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+        </button>
+        <nav class="mobile-nav">
+            <div class="mobile-dropdown">
+                <a href="products.html" class="mobile-nav-link">Products</a>
+                <div class="mobile-dropdown-content">
+                    <a href="product-mtrac.html">MTRAC</a>
+                    <a href="product-gateway.html">Gateway</a>
+                    <a href="products.html">View All</a>
+                </div>
+            </div>
+            <a href="technology.html" class="mobile-nav-link">Technology</a>
+            <a href="industries.html" class="mobile-nav-link">Industries</a>
+            <a href="about.html" class="mobile-nav-link">About</a>
+            <a href="contact.html" class="mobile-nav-link">Contact</a>
+        </nav>
+        <div class="mobile-nav-footer">
+            <a href="contact.html" class="btn btn-primary" style="width: 100%;">Contact Sales</a>
+        </div>
     </div>
 
-    <div class="panel viewer">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
-        <div>
-          <h2 id="imgTitle">No image selected</h2>
-          <div class="meta" id="imgMeta"></div>
+    <!-- Page Header -->
+    <section class="page-header">
+        <div class="container">
+            <h1 class="page-title">Our Products</h1>
+            <p class="page-subtitle">A complete ecosystem of ruggedized tracking hardware designed to work together in the world's most demanding environments.</p>
+            
+            <div class="video-wrapper page-hero-video">
+                <video id="heroVideo" autoplay loop muted playsinline poster="https://github.com/WIKDMotorsports/Misc/blob/main/Productrenders/Family/Family-Familyorbit_081.png?raw=true">
+                    <source src="https://github.com/WIKDMotorsports/Misc/raw/refs/heads/main/Productrenders/Combined.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-controls-overlay">
+                    <button id="videoPlayBtn" class="video-control-btn" aria-label="Pause Video">
+                        <svg viewBox="0 0 24 24">
+                            <rect x="6" y="4" width="4" height="16"></rect>
+                            <rect x="14" y="4" width="4" height="16"></rect>
+                        </svg>
+                    </button>
+                    <button id="videoMuteBtn" class="video-control-btn" aria-label="Unmute Video">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                            <line x1="23" y1="9" x2="17" y2="15"></line>
+                            <line x1="17" y1="9" x2="23" y2="15"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <label class="small">Label:</label>
-          <input type="text" id="currentLabel" placeholder="marker label" />
-          <button id="toggleLabels" class="muted-btn">Toggle Labels</button>
-          <button id="downloadAnnotated" class="muted-btn">Download Annotated</button>
-          <button id="embedUserComment" class="muted-btn">Embed JSON in JPEG (UserComment)</button>
-        </div>
-      </div>
+    </section>
 
-      <div class="canvas-wrap">
-        <div class="image-box" id="imageBox">
-          <img id="main" src="" alt="" draggable="false" />
+    <!-- Product Navigation -->
+    <section class="product-nav">
+        <div class="container">
+            <div class="product-nav-inner">
+                <span class="product-nav-label">Browse:</span>
+                <a href="#trackers" class="product-nav-link active">Asset Trackers</a>
+                <a href="#gateways" class="product-nav-link">Gateways</a>
+                <a href="#accessories" class="product-nav-link">Accessories</a>
+                <a href="#platform" class="product-nav-link">Platform</a>
+            </div>
         </div>
-      </div>
+    </section>
 
-      <div class="controls">
-        <div class="small">Click on the image to add a hotspot at that pixel. Markers are stored relative to the image's natural resolution.</div>
-      </div>
-
-      <div style="margin-top:12px">
-        <div style="display:flex;gap:8px;align-items:center">
-          <label class="small">Hotspots</label>
-          <div id="hotCount" class="small"></div>
+    <!-- Trackers Section -->
+    <section class="section" id="trackers">
+        <div class="container">
+            <div class="section-header" style="text-align: left; margin-bottom: 50px;">
+                <h2 class="section-title" style="font-size: 32px;">Asset Trackers</h2>
+                <p class="section-subtitle" style="margin: 0;">Ruggedized GPS tracking devices for high-value assets</p>
+            </div>
+            
+            <div class="products-grid">
+                <div class="product-card">
+                    <div class="product-card-image">
+                        <span class="product-card-tag">Flagship</span>
+                        <img src="https://github.com/WIKDMotorsports/Misc/blob/main/Productrenders/MTRAC/In%20Case-Camera.png?raw=true" alt="MTRAC Asset Tracker">
+                    </div>
+                    <div class="product-card-content">
+                        <h3 class="product-card-name">MTRAC Asset Tracker</h3>
+                        <p class="product-card-desc">Our flagship ruggedized tracker with 10-year battery, global satellite connectivity, and full MIL-STD-810H certification.</p>
+                        <a href="product-mtrac.html" class="product-card-link">
+                            View Details
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-card-image">
+                        <span class="product-card-tag">Coming Soon</span>
+                        <img src="https://github.com/WIKDMotorsports/Misc/blob/main/Productrenders/MTRAC_Lite/In%20Case-Minis%20Front.png?raw=true" alt="MTRAC Lite">
+                    </div>
+                    <div class="product-card-content">
+                        <h3 class="product-card-name">MTRAC Lite</h3>
+                        <p class="product-card-desc">Compact tracker for smaller assets and equipment. Same rugged DNA in a lighter form factor.</p>
+                        <span class="product-card-link" style="opacity: 0.5;">
+                            Coming Soon
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-card-image">
+                        <span class="product-card-tag">Coming Soon</span>
+                        PRODUCT IMAGE
+                    </div>
+                    <div class="product-card-content">
+                        <h3 class="product-card-name">MTRAC Container</h3>
+                        <p class="product-card-desc">Specialized tracker for shipping containers with door sensors and tamper detection.</p>
+                        <span class="product-card-link" style="opacity: 0.5;">
+                            Coming Soon
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
-        <div class="hotspot-list" id="hotspotList"></div>
-      </div>
+    </section>
+
+    <!-- Gateways Section -->
+    <section class="section" id="gateways" style="background: var(--color-bg-secondary);">
+        <div class="container">
+            <div class="section-header" style="text-align: left; margin-bottom: 50px;">
+                <h2 class="section-title" style="font-size: 32px;">Gateways</h2>
+                <p class="section-subtitle" style="margin: 0;">Network infrastructure for remote and challenging deployments</p>
+            </div>
+            
+            <div class="products-grid">
+                <div class="product-card">
+                    <div class="product-card-image">
+                        <span class="product-card-tag">Available</span>
+                        <img src="https://github.com/WIKDMotorsports/Misc/blob/main/Productrenders/Gatewayconcept/In%20Case-Gateway%20Front_001.png?raw=true" alt="Storm Gateway">
+                    </div>
+                    <div class="product-card-content">
+                        <h3 class="product-card-name">Storm Gateway</h3>
+                        <p class="product-card-desc">Long-range mesh gateway for remote deployments. Creates robust network coverage in challenging terrain.</p>
+                        <a href="product-gateway.html" class="product-card-link">
+                            View Details
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-card-image">
+                        <span class="product-card-tag">Coming Soon</span>
+                        <img src="https://github.com/WIKDMotorsports/Misc/blob/main/Productrenders/Gatewayconcept/Gateway%20Mobile%20etc-Camera%2015_001.png?raw=true" alt="Gateway Mobile">
+                    </div>
+                    <div class="product-card-content">
+                        <h3 class="product-card-name">Gateway Mobile</h3>
+                        <p class="product-card-desc">Vehicle-mounted gateway for mobile command posts and convoy operations.</p>
+                        <span class="product-card-link" style="opacity: 0.5;">
+                            Coming Soon
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-card-image">
+                        <span class="product-card-tag">Coming Soon</span>
+                        PRODUCT IMAGE
+                    </div>
+                    <div class="product-card-content">
+                        <h3 class="product-card-name">Gateway Solar</h3>
+                        <p class="product-card-desc">Self-powered gateway with integrated solar panel for off-grid installations.</p>
+                        <span class="product-card-link" style="opacity: 0.5;">
+                            Coming Soon
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Accessories Section -->
+    <section class="section" id="accessories">
+        <div class="container">
+            <div class="section-header" style="text-align: left; margin-bottom: 50px;">
+                <h2 class="section-title" style="font-size: 32px;">Accessories</h2>
+                <p class="section-subtitle" style="margin: 0;">Mounting, power, and integration accessories</p>
+            </div>
+            
+            <div class="products-grid">
+                <div class="product-card">
+                    <div class="product-card-image">
+                        <span class="product-card-tag">Coming Soon</span>
+                        PRODUCT IMAGE
+                    </div>
+                    <div class="product-card-content">
+                        <h3 class="product-card-name">Power Pack</h3>
+                        <p class="product-card-desc">Extended battery module for multi-year deployments where replacement isn't an option.</p>
+                        <span class="product-card-link" style="opacity: 0.5;">
+                            Coming Soon
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-card-image">
+                        <span class="product-card-tag">Coming Soon</span>
+                        PRODUCT IMAGE
+                    </div>
+                    <div class="product-card-content">
+                        <h3 class="product-card-name">Universal Mount</h3>
+                        <p class="product-card-desc">Heavy-duty mounting solutions for any surface. Includes bolt-on and magnetic options.</p>
+                        <span class="product-card-link" style="opacity: 0.5;">
+                            Coming Soon
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="product-card">
+                    <div class="product-card-image">
+                        <span class="product-card-tag">Coming Soon</span>
+                        PRODUCT IMAGE
+                    </div>
+                    <div class="product-card-content">
+                        <h3 class="product-card-name">Wiring Harness</h3>
+                        <p class="product-card-desc">Vehicle integration harness for powered installations with CAN bus support.</p>
+                        <span class="product-card-link" style="opacity: 0.5;">
+                            Coming Soon
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Platform Section -->
+    <section class="section" id="platform" style="background: var(--color-bg-secondary);">
+        <div class="container">
+            <div class="section-header" style="text-align: left; margin-bottom: 50px;">
+                <h2 class="section-title" style="font-size: 32px;">StormCloud Platform</h2>
+                <p class="section-subtitle" style="margin: 0;">Command and control software for your entire fleet</p>
+            </div>
+            
+            <div class="features-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <div class="card">
+                    <div class="card-icon">
+                        <animated-icons
+                            src="https://animatedicons.co/get-icon?name=Report%20V2&style=minimalistic&token=fc5c52bc-b9f4-4fb9-981d-70e44b853063"
+                            attributes='{"variationThumbColour":"#4ade80","variationName":"Two Tone","variationNumber":2,"numberOfGroups":2,"backgroundIsGroup":false,"strokeWidth":1,"defaultColours":{"group-1":"#FFFFFF","group-2":"#4ADE80","background":"#111111"}}'
+                            height="40"
+                            width="40"
+                        ></animated-icons>
+                    </div>
+                    <h3 class="card-title">Real-Time Dashboard</h3>
+                    <p class="card-text">Unified view of all assets with live location updates, status monitoring, and customizable alerts.</p>
+                    <a href="technology.html" class="card-link">
+                        Learn More
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+                
+                <div class="card">
+                    <div class="card-icon">
+                        <animated-icons
+                            src="https://animatedicons.co/get-icon?name=API&style=minimalistic&token=f4327d0c-f900-40d7-9528-0164114431ff"
+                            attributes='{"variationThumbColour":"#4ade80","variationName":"Two Tone","variationNumber":2,"numberOfGroups":2,"backgroundIsGroup":false,"strokeWidth":1,"defaultColours":{"group-1":"#FFFFFF","group-2":"#4ADE80","background":"#111111"}}'
+                            height="40"
+                            width="40"
+                        ></animated-icons>
+                    </div>
+                    <h3 class="card-title">API Integration</h3>
+                    <p class="card-text">RESTful API for seamless integration with existing logistics, ERP, and asset management systems.</p>
+                    <a href="technology.html" class="card-link">
+                        Learn More
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="section cta-section" id="cta">
+        <div class="container">
+            <div class="cta-content">
+                <h2 class="cta-title">Need Help Choosing?</h2>
+                <p class="cta-text">Our team can help you select the right combination of products for your specific requirements and deployment environment.</p>
+                <div class="cta-buttons">
+                    <a href="contact.html" class="btn btn-primary">Contact Sales</a>
+                    <a href="technology.html" class="btn btn-secondary">View Technology</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand">
+                    <a href="index.html" class="logo">
+                        <div class="logo-icon">S</div>
+                        STORMPMC
+                    </a>
+                    <p>Military-grade asset tracking solutions engineered for the world's most demanding environments.</p>
+                </div>
+                
+                <div class="footer-column">
+                    <h4 class="footer-heading">Products</h4>
+                    <ul class="footer-links">
+                        <li><a href="product-mtrac.html">MTRAC Tracker</a></li>
+                        <li><a href="product-gateway.html">Storm Gateway</a></li>
+                        <li><a href="products.html">All Products</a></li>
+                        <li><a href="products.html">Accessories</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4 class="footer-heading">Company</h4>
+                    <ul class="footer-links">
+                        <li><a href="about.html">About Us</a></li>
+                        <li><a href="technology.html">Technology</a></li>
+                        <li><a href="industries.html">Industries</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h4 class="footer-heading">Resources</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Documentation</a></li>
+                        <li><a href="#">Support Center</a></li>
+                        <li><a href="#">API Reference</a></li>
+                        <li><a href="#">Status</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="footer-bottom">
+                <p class="footer-copyright">© 2025 StormPMC. All rights reserved.</p>
+                <div class="footer-legal">
+                    <a href="#">Privacy Policy</a>
+                    <a href="#">Terms of Service</a>
+                    <a href="#">Cookie Policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- LIGHTBOX NAV COMPONENT (Fixed Bottom) -->
+    <div id="lightbox-cta-container" class="lightbox-cta-container">
+        
+        <!-- Previous -->
+        <button id="lightbox-prev" class="lightbox-nav" aria-label="Previous">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+        </button>
+        
+        <!-- Filter Menu -->
+        <div class="filter-wrapper">
+            <button id="lightbox-filter" class="lightbox-nav" aria-label="Filter">
+                <i data-lucide="layout-grid" class="w-5 h-5"></i>
+            </button>
+            <div class="filter-menu" id="filter-menu">
+                <div class="filter-header">Browse</div>
+                <a href="#trackers" class="filter-option">Asset Trackers</a>
+                <a href="#gateways" class="filter-option">Gateways</a>
+                <a href="#accessories" class="filter-option">Accessories</a>
+                <a href="#platform" class="filter-option">Platform</a>
+                <a href="#cta" class="filter-option">Contact & Help</a>
+            </div>
+        </div>
+
+        <!-- Secondary CTA: View Tech -->
+        <a href="technology.html" class="btn-wikd lightbox-btn-secondary">
+            View Tech
+        </a>
+
+        <!-- Primary CTA: Contact -->
+        <a href="contact.html" id="lightbox-cta-btn" class="btn-wikd lightbox-btn">
+            Contact
+        </a>
+        
+        <!-- Next -->
+        <button id="lightbox-next" class="lightbox-nav" aria-label="Next">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+        </button>
+
     </div>
-  </div>
 
-<script>
-// Single-file Hotspot Builder JS
-// Features implemented:
-// - Drag/drop or browse to load images (multiple)
-// - Click to add hotspot (saved as absolute pixel coords relative to naturalWidth/naturalHeight)
-// - Drag to reposition markers
-// - Right-click marker to delete
-// - Edit label for marker
-// - Export JSON bulk; Import JSON
-// - Download annotated image (PNG) per-image or bulk
-// - Download .xmp sidecar files containing JSON for each image
-// - Embed JSON into JPEG's Exif UserComment (best-effort using piexifjs, if image is JPEG)
+    <!-- Scripts -->
+    <script>
+        // Navbar scroll effect
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
 
-// State
-const state = { images: [], selectedIndex: -1 };
+        // Mobile Menu Toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const mobileMenu = document.getElementById('mobileMenu');
+        const mobileMenuClose = document.getElementById('mobileMenuClose');
+        const body = document.body;
 
-// Utilities
-function uid(len=6){return Math.random().toString(36).slice(2,2+len)}
-function readFileAsDataURL(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
-
-// DOM
-const drop = document.getElementById('drop');
-const fileinput = document.getElementById('fileinput');
-const filelist = document.getElementById('filelist');
-const mainImg = document.getElementById('main');
-const imageBox = document.getElementById('imageBox');
-const imgTitle = document.getElementById('imgTitle');
-const imgMeta = document.getElementById('imgMeta');
-const hotspotList = document.getElementById('hotspotList');
-const jsonPreview = document.getElementById('jsonPreview');
-const exportJsonBtn = document.getElementById('exportJson');
-const importJsonBtn = document.getElementById('importJson');
-const downloadAnnotatedBtn = document.getElementById('downloadAnnotated');
-const downloadAllAnnotatedBtn = document.getElementById('downloadAllAnnotated');
-const downloadXMPBtn = document.getElementById('downloadXMP');
-const currentLabel = document.getElementById('currentLabel');
-const toggleLabelsBtn = document.getElementById('toggleLabels');
-const embedUserCommentBtn = document.getElementById('embedUserComment');
-
-let showLabels = true;
-
-// File handling
-drop.addEventListener('click',()=>fileinput.click());
-fileinput.addEventListener('change', async(e)=>{await handleFiles([...e.target.files]); fileinput.value='';});
-
-['dragenter','dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,(e)=>{e.preventDefault();e.stopPropagation();}));
-drop.addEventListener('drop',async(e)=>{const files=[...e.dataTransfer.files].filter(f=>f.type.startsWith('image/')); await handleFiles(files);});
-
-async function handleFiles(files){
-  for(const file of files){
-    try{
-      const url = await readFileAsDataURL(file);
-      const img = new Image();
-      await new Promise((res,rej)=>{img.onload=res;img.onerror=rej;img.src=url});
-      const entry = { id: uid(8), name: file.name, fileType:file.type, dataURL: url, naturalWidth: img.naturalWidth, naturalHeight: img.naturalHeight, hotspots: [] };
-      state.images.push(entry);
-    }catch(err){console.warn('failed to load',file.name,err)}
-  }
-  renderFileList();
-  if(state.selectedIndex===-1 && state.images.length>0) selectImage(0);
-  updatePreviewJSON();
-}
-
-function renderFileList(){
-  filelist.innerHTML='';
-  state.images.forEach((it,i)=>{
-    const el=document.createElement('div');el.className='file'+(i===state.selectedIndex?' selected':'');
-    el.innerHTML=`<img class='thumb' src='${it.dataURL}'/><div style='flex:1'><div style='font-weight:600'>${it.name}</div><div class='meta'>${it.naturalWidth}×${it.naturalHeight} • ${it.hotspots.length} hotspots</div></div>`;
-    el.addEventListener('click',()=>selectImage(i));
-    filelist.appendChild(el);
-  })
-}
-
-function selectImage(index){
-  state.selectedIndex=index;
-  const it=state.images[index];
-  mainImg.src = it.dataURL;
-  imgTitle.textContent = it.name;
-  imgMeta.textContent = `${it.naturalWidth} × ${it.naturalHeight} • ${it.hotspots.length} hotspots`;
-  renderFileList();
-  renderMarkers();
-  updateHotspotList();
-}
-
-// Markers
-function renderMarkers(){
-  // remove existing
-  document.querySelectorAll('.marker').forEach(n=>n.remove());
-  const idx = state.selectedIndex; if(idx<0) return;
-  const it = state.images[idx];
-  it.hotspots.forEach((h, i) => {
-    const el = document.createElement('div');
-    el.className='marker';
-    el.dataset.index = i;
-    el.title = h.label || '';
-    if(showLabels) el.textContent = h.label ? (h.label.length>2? h.label[0] : h.label) : i+1;
-    else el.textContent='';
-    positionMarker(el, h);
-    makeDraggable(el, h, it);
-    el.addEventListener('contextmenu', (ev)=>{ev.preventDefault(); deleteHotspot(i);});
-    imageBox.appendChild(el);
-  });
-}
-
-function positionMarker(el, h){
-  const scaleX = mainImg.clientWidth / mainImg.naturalWidth;
-  const scaleY = mainImg.clientHeight / mainImg.naturalHeight;
-  const left = (h.x / mainImg.naturalWidth) * mainImg.clientWidth;
-  const top = (h.y / mainImg.naturalHeight) * mainImg.clientHeight;
-  el.style.left = left + 'px';
-  el.style.top = top + 'px';
-}
-
-function imgClientToNatural(clientX, clientY){
-  const rect = mainImg.getBoundingClientRect();
-  const cx = Math.min(Math.max(0, clientX - rect.left), rect.width);
-  const cy = Math.min(Math.max(0, clientY - rect.top), rect.height);
-  const nx = Math.round((cx / rect.width) * mainImg.naturalWidth);
-  const ny = Math.round((cy / rect.height) * mainImg.naturalHeight);
-  return { x: nx, y: ny };
-}
-
-mainImg.addEventListener('click',(e)=>{
-  if(state.selectedIndex<0) return;
-  const label = currentLabel.value.trim();
-  const { x,y } = imgClientToNatural(e.clientX, e.clientY);
-  const it = state.images[state.selectedIndex];
-  it.hotspots.push({ x,y,label,id:uid(6) });
-  renderMarkers(); updateHotspotList(); renderFileList(); updatePreviewJSON();
-});
-
-function deleteHotspot(i){
-  if(state.selectedIndex<0) return;
-  const it = state.images[state.selectedIndex];
-  it.hotspots.splice(i,1);
-  renderMarkers(); updateHotspotList(); renderFileList(); updatePreviewJSON();
-}
-
-function makeDraggable(el, hotspot, imageEntry){
-  let dragging=false, startX=0, startY=0;
-  el.addEventListener('mousedown', (e)=>{
-    e.preventDefault(); dragging=true; el.classList.add('dragging');
-    startX = e.clientX; startY = e.clientY;
-    document.addEventListener('mousemove', onmove);
-    document.addEventListener('mouseup', onup, {once:true});
-  });
-  function onmove(e){
-    if(!dragging) return;
-    const rect = mainImg.getBoundingClientRect();
-    const cx = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
-    const cy = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
-    const nx = Math.round((cx / rect.width) * mainImg.naturalWidth);
-    const ny = Math.round((cy / rect.height) * mainImg.naturalHeight);
-    hotspot.x = nx; hotspot.y = ny;
-    positionMarker(el, hotspot);
-    updateHotspotList(); updatePreviewJSON();
-  }
-  function onup(){ dragging=false; el.classList.remove('dragging'); document.removeEventListener('mousemove', onmove); }
-}
-
-function updateHotspotList(){
-  hotspotList.innerHTML='';
-  if(state.selectedIndex<0) { document.getElementById('hotCount').textContent=''; return }
-  const it = state.images[state.selectedIndex];
-  document.getElementById('hotCount').textContent = `${it.hotspots.length}`;
-  it.hotspots.forEach((h,i)=>{
-    const el = document.createElement('div'); el.className='hotspot-item';
-    el.innerHTML = `<div style='flex:1'><strong>${i+1}</strong> <span class='small'>${h.label||''}</span><div class='small'>x:${h.x} y:${h.y}</div></div><div style='display:flex;gap:6px'><button class='muted-btn' data-action='edit'>Edit</button><button class='muted-btn' data-action='zoom'>Jump</button></div>`;
-    el.querySelectorAll('button').forEach(btn=>{
-      btn.addEventListener('click',(ev)=>{
-        const act = btn.dataset.action;
-        if(act==='edit'){ const newLabel = prompt('New label', h.label||''); if(newLabel!==null){ h.label=newLabel; renderMarkers(); updateHotspotList(); updatePreviewJSON(); }}
-        if(act==='zoom'){ // no zoom, but move viewport by setting scroll to image
-          // center imageBox viewport to marker
-          const rect = mainImg.getBoundingClientRect(); const cx=(h.x/mainImg.naturalWidth)*rect.width + rect.left; window.scrollTo({left: Math.max(0,cx-200), behavior:'smooth'});
+        function openMobileMenu() {
+            mobileMenu.classList.add('active');
+            mobileMenuBtn.classList.add('active');
+            body.style.overflow = 'hidden';
+            mobileMenuBtn.setAttribute('aria-expanded', 'true');
         }
-      })
-    });
-    hotspotList.appendChild(el);
-  });
-}
 
-// Exports & imports
-function buildExport(){
-  return state.images.map(it=>({ name:it.name, naturalWidth:it.naturalWidth,naturalHeight:it.naturalHeight,fileType:it.fileType, hotspots: it.hotspots }));
-}
+        function closeMobileMenu() {
+            mobileMenu.classList.remove('active');
+            mobileMenuBtn.classList.remove('active');
+            body.style.overflow = '';
+            mobileMenuBtn.setAttribute('aria-expanded', 'false');
+        }
 
-exportJsonBtn.addEventListener('click', ()=>{
-  const data = buildExport();
-  const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='hotspots.json'; a.click(); URL.revokeObjectURL(url);
-});
+        mobileMenuBtn.addEventListener('click', openMobileMenu);
+        mobileMenuClose.addEventListener('click', closeMobileMenu);
 
-importJsonBtn.addEventListener('click', ()=>{
-  const inp = document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange = async(e)=>{
-    const f = e.target.files[0]; if(!f) return; const txt = await f.text(); try{ const data = JSON.parse(txt); // merge by name where possible
-      data.forEach(remote=>{
-        const local = state.images.find(x=>x.name===remote.name);
-        if(local){ local.hotspots = remote.hotspots || []; }
-      }); renderMarkers(); renderFileList(); updateHotspotList(); updatePreviewJSON(); alert('Imported'); }catch(err){alert('Bad JSON')}
-  }; inp.click();
-});
+        mobileMenu.addEventListener('click', (e) => {
+            if (e.target === mobileMenu) {
+                closeMobileMenu();
+            }
+        });
 
-function updatePreviewJSON(){ jsonPreview.value = JSON.stringify(buildExport(), null, 2); }
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && mobileMenu.classList.contains('active')) {
+                closeMobileMenu();
+            }
+        });
 
-// Annotated image download (draw markers onto canvas)
-function annotatedCanvasForImage(it){
-  return new Promise((res,rej)=>{
-    const img = new Image(); img.onload = ()=>{
-      const canvas = document.createElement('canvas'); canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; const ctx = canvas.getContext('2d'); ctx.drawImage(img,0,0);
-      // draw markers
-      it.hotspots.forEach((h,i)=>{
-        const r = Math.max(6, Math.round(Math.min(canvas.width, canvas.height)/60));
-        ctx.beginPath(); ctx.fillStyle = '#7c3aed'; ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(2, r/3);
-        ctx.arc(h.x, h.y, r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-        if(h.label){ ctx.font = Math.round(r*1.2)+'px sans-serif'; ctx.fillStyle='white'; ctx.fillText(h.label, h.x + r + 6, h.y + (r/2)); }
-      });
-      res(canvas);
-    }; img.onerror = rej; img.src = it.dataURL;
-  });
-}
+        document.querySelectorAll('.mobile-dropdown > .mobile-nav-link').forEach(link => {
+            link.addEventListener('click', (e) => {
+                const dropdown = e.target.closest('.mobile-dropdown');
+                const content = dropdown.querySelector('.mobile-dropdown-content');
+                const isOpen = content.style.display === 'flex';
+                document.querySelectorAll('.mobile-dropdown-content').forEach(d => {
+                    d.style.display = 'none';
+                });
+                if (!isOpen) {
+                    content.style.display = 'flex';
+                    e.preventDefault();
+                }
+            });
+        });
 
-downloadAnnotatedBtn.addEventListener('click', async()=>{
-  if(state.selectedIndex<0) return alert('Select an image');
-  const it = state.images[state.selectedIndex];
-  const canvas = await annotatedCanvasForImage(it);
-  canvas.toBlob(blob=>{ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download = it.name.replace(/\.[^.]+$/,'') + '-annotated.png'; a.click(); URL.revokeObjectURL(url); });
-});
+        // Product nav active state
+        const sections = document.querySelectorAll('section[id]');
+        const navLinks = document.querySelectorAll('.product-nav-link');
+        
+        window.addEventListener('scroll', () => {
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 200;
+                if (scrollY >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+            
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + current) {
+                    link.classList.add('active');
+                }
+            });
+        });
 
-downloadAllAnnotatedBtn.addEventListener('click', async()=>{
-  for(const it of state.images){ const canvas = await annotatedCanvasForImage(it); await new Promise(res=>canvas.toBlob(blob=>{ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download = it.name.replace(/\.[^.]+$/,'') + '-annotated.png'; a.click(); URL.revokeObjectURL(url); setTimeout(res,120); })); }
-});
+        // Smooth scroll for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
 
-// XMP sidecar generation (simple wrapper embedding our JSON in a <x:xmpmeta> tag as <rdf:Description Hotspots='...'>)
-function xmpForEntry(it){
-  const hotspotsJSON = JSON.stringify({ name:it.name, naturalWidth:it.naturalWidth, naturalHeight:it.naturalHeight, hotspots: it.hotspots });
-  const xml = `<?xpacket begin=\"\uFEFF\" id=\"W5M0MpCehiHzreSzNTczkc9d\"?>\n<x:xmpmeta xmlns:x=\"adobe:ns:meta/\">\n<rdf:RDF xmlns:rdf=\"http://www.w3.org/1999/02/22-rdf-syntax-ns#\">\n<rdf:Description rdf:about=\"\" xmlns:hs=\"http://example.com/hotspots/1.0/\" hs:hotspots='${hotspotsJSON.replace(/'/g,"&apos;")}' />\n</rdf:RDF>\n</x:xmpmeta>\n<?xpacket end=\"w\"?>`;
-  return xml;
-}
+        // Trigger animated icons on card hover via attribute manipulation
+        document.querySelectorAll('.features-grid .card').forEach(card => {
+            const icon = card.querySelector('animated-icons');
+            
+            if (icon) {
+                // Ensure clean state
+                icon.removeAttribute('trigger');
+                
+                card.addEventListener('mouseenter', () => {
+                    // Force the component to loop
+                    icon.setAttribute('trigger', 'loop');
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    // Stop the component
+                    icon.removeAttribute('trigger');
+                });
+            }
+        });
 
-downloadXMPBtn.addEventListener('click', ()=>{
-  for(const it of state.images){ const xmp = xmpForEntry(it); const blob = new Blob([xmp],{type:'application/xml'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download = it.name.replace(/\.[^.]+$/,'') + '.xmp'; a.click(); URL.revokeObjectURL(url); }
-});
+        // Video Player Controls
+        const video = document.getElementById('heroVideo');
+        const playBtn = document.getElementById('videoPlayBtn');
+        const muteBtn = document.getElementById('videoMuteBtn');
 
-// Embed JSON into JPEG UserComment using piexifjs if JPEG
-embedUserCommentBtn.addEventListener('click', async()=>{
-  if(state.selectedIndex<0) return alert('Select an image');
-  const it = state.images[state.selectedIndex];
-  if(!it.fileType.includes('jpeg') && !it.fileType.includes('jpg')) return alert('Embedding to EXIF is only supported for JPEG files in this tool.');
+        if (video && playBtn && muteBtn) {
+            // Play/Pause Toggle
+            playBtn.addEventListener('click', () => {
+                if (video.paused) {
+                    video.play();
+                    playBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24">
+                            <rect x="6" y="4" width="4" height="16"></rect>
+                            <rect x="14" y="4" width="4" height="16"></rect>
+                        </svg>`;
+                    playBtn.setAttribute('aria-label', 'Pause Video');
+                } else {
+                    video.pause();
+                    playBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>`;
+                    playBtn.setAttribute('aria-label', 'Play Video');
+                }
+            });
 
-  // lazy load piexifjs
-  if(typeof piexif === 'undefined'){
-    await loadScript('https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js');
-  }
-  try{
-    const hotspotsJSON = JSON.stringify({ name:it.name, naturalWidth:it.naturalWidth, naturalHeight:it.naturalHeight, hotspots: it.hotspots });
-    const encoded = piexif.dump({Exif:{UserComment: piexif._getExifByteArray(hotspotsJSON)}});
-    const newData = piexif.insert(encoded, it.dataURL);
-    // download new JPEG
-    const a=document.createElement('a'); a.href=newData; a.download = it.name.replace(/\.[^.]+$/,'') + '-with-hotspots.jpg'; a.click();
-    alert('Downloaded JPEG with UserComment (best-effort). Note: not all viewers show UserComment.');
-  }catch(err){console.error(err); alert('Failed to embed EXIF: '+err.message)}
-});
+            // Mute/Unmute Toggle
+            muteBtn.addEventListener('click', () => {
+                if (video.muted) {
+                    video.muted = false;
+                    // Volume On Icon
+                    muteBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>`;
+                    muteBtn.setAttribute('aria-label', 'Mute Video');
+                } else {
+                    video.muted = true;
+                    // Mute Icon
+                    muteBtn.innerHTML = `
+                        <svg viewBox="0 0 24 24">
+                            <path d="M11 5L6 9H2v6h4l5 4V5z"></path>
+                            <line x1="23" y1="9" x2="17" y2="15"></line>
+                            <line x1="17" y1="9" x2="23" y2="15"></line>
+                        </svg>`;
+                    muteBtn.setAttribute('aria-label', 'Unmute Video');
+                }
+            });
+        }
 
-function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=rej;document.head.appendChild(s)})}
+        // ============================================
+        // LIGHTBOX NAV LOGIC
+        // ============================================
+        lucide.createIcons();
+        const lightboxContainer = document.getElementById('lightbox-cta-container');
 
-// Toggle labels
-toggleLabelsBtn.addEventListener('click', ()=>{ showLabels = !showLabels; renderMarkers(); toggleLabelsBtn.textContent = showLabels? 'Hide Labels' : 'Show Labels'; });
+        // Animation Trigger
+        function triggerLightboxAnimation() {
+            lightboxContainer.classList.remove('visible');
+            void lightboxContainer.offsetWidth; 
+            setTimeout(() => { lightboxContainer.classList.add('visible'); }, 100);
+        }
+        window.addEventListener('DOMContentLoaded', triggerLightboxAnimation);
 
-// Keep marker positions updated on window resize / image resize
-new ResizeObserver(()=>{ renderMarkers(); }).observe(mainImg);
+        // Click Feedback for Nav Buttons
+        const lightboxNavBtns = document.querySelectorAll('.lightbox-nav:not(#lightbox-filter)');
+        lightboxNavBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                this.style.transform = "translateY(1px)";
+                setTimeout(() => { this.style.transform = ""; }, 100);
+            });
+        });
 
-// keyboard shortcuts
-window.addEventListener('keydown',(e)=>{
-  if(e.key==='n') { // next image
-    if(state.images.length===0) return; const idx = (state.selectedIndex+1)%state.images.length; selectImage(idx);
-  }
-  if(e.key==='ArrowRight'){ if(state.images.length===0) return; const idx = Math.min(state.selectedIndex+1, state.images.length-1); selectImage(idx); }
-  if(e.key==='ArrowLeft'){ if(state.images.length===0) return; const idx = Math.max(0, state.selectedIndex-1); selectImage(idx); }
-});
+        // Filter Toggle & Sizing Logic
+        const filterBtn = document.getElementById('lightbox-filter');
+        const filterMenu = document.getElementById('filter-menu');
+        const contactBtn = document.getElementById('lightbox-cta-btn'); // Primary CTA
 
-// small helpful UX: clicking on a file in list focuses it
+        // Dynamic Width Calculation
+        function updateMenuDimensions() {
+            if (!filterBtn || !contactBtn || !filterMenu) return;
+            const startX = filterBtn.getBoundingClientRect().left;
+            const endX = contactBtn.getBoundingClientRect().right;
+            const newWidth = endX - startX;
+            
+            // Only apply if width is positive and reasonable
+            if (newWidth > 0) {
+                filterMenu.style.width = `${newWidth}px`;
+            }
+        }
 
-// initialize
-updatePreviewJSON();
+        filterBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            updateMenuDimensions(); // Calculate exactly before showing
+            filterMenu.classList.toggle('active');
+            filterBtn.classList.toggle('active');
+        });
 
-</script>
+        // Recalculate on resize if menu is open to stay aligned
+        window.addEventListener('resize', () => {
+            if (filterMenu.classList.contains('active')) {
+                updateMenuDimensions();
+            }
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!filterBtn.contains(e.target) && !filterMenu.contains(e.target)) {
+                filterMenu.classList.remove('active');
+                filterBtn.classList.remove('active');
+            }
+        });
+
+        // ============================================
+        // SEQUENTIAL SCROLL NAVIGATION
+        // ============================================
+        const navSectionIds = ['trackers', 'gateways', 'accessories', 'platform', 'cta'];
+        const prevNavBtn = document.getElementById('lightbox-prev');
+        const nextNavBtn = document.getElementById('lightbox-next');
+
+        function scrollToId(id) {
+            if (id === 'hero') {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } else {
+                // Special logic for Trackers to include the Browse Bar
+                let targetElement = document.getElementById(id);
+                
+                if (id === 'trackers') {
+                    const navBar = document.querySelector('.product-nav');
+                    // If nav bar exists and is visible (not mobile), scroll to it instead
+                    if (navBar && getComputedStyle(navBar).display !== 'none') {
+                        targetElement = navBar;
+                    }
+                }
+
+                if (targetElement) {
+                    // Calculate offset to account for fixed nav bar (approx 100px)
+                    const offset = 100;
+                    const elementPosition = targetElement.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.scrollY - offset;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: "smooth"
+                    });
+                }
+            }
+        }
+
+        function getCurrentSectionIndex() {
+            // Determine active section based on scroll position
+            // Using top 1/3 of screen as the "active" trigger line
+            const triggerLine = window.scrollY + (window.innerHeight / 3);
+            
+            // Check sections in reverse to find the "deepest" one we've scrolled past
+            for (let i = navSectionIds.length - 1; i >= 0; i--) {
+                let el = document.getElementById(navSectionIds[i]);
+                
+                // Use Browse Bar as the anchor for "trackers" if visible
+                if (navSectionIds[i] === 'trackers') {
+                    const navBar = document.querySelector('.product-nav');
+                    if (navBar && getComputedStyle(navBar).display !== 'none') {
+                        el = navBar;
+                    }
+                }
+
+                // -150 offset allows the header detection to happen slightly before the exact top
+                if (el && el.offsetTop - 150 <= triggerLine) { 
+                    return i;
+                }
+            }
+            return -1; // -1 represents the Hero/Top area
+        }
+
+        prevNavBtn.addEventListener('click', () => {
+            const currentIndex = getCurrentSectionIndex();
+            
+            if (currentIndex > 0) {
+                // Scroll to previous section
+                scrollToId(navSectionIds[currentIndex - 1]);
+            } else if (currentIndex === 0) {
+                // Scroll back to top (Hero)
+                scrollToId('hero');
+            }
+            // If -1 (Hero), do nothing (or animate shake to indicate start)
+        });
+
+        nextNavBtn.addEventListener('click', () => {
+            const currentIndex = getCurrentSectionIndex();
+            
+            if (currentIndex < navSectionIds.length - 1) {
+                // Scroll to next section
+                scrollToId(navSectionIds[currentIndex + 1]);
+            } else if (currentIndex === -1) {
+                // From Hero, go to first section
+                scrollToId(navSectionIds[0]);
+            }
+            // If at last section, do nothing
+        });
+
+    </script>
+    <script src="https://animatedicons.co/scripts/embed-animated-icons.js"></script>
 </body>
 </html>
-
-
-//Video version
-
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Video Hotspot Builder — Full God Mode</title>
-  <style>
-    :root{--bg:#071127;--panel:#071a2a;--muted:#9fb0c9;--accent:#ff7b72;--accent2:#7c3aed}
-    *{box-sizing:border-box;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
-    body{margin:0;height:100vh;background:linear-gradient(180deg,#041026 0%,#071127 100%);color:#e6eef6}
-    .app{display:grid;grid-template-columns:360px 1fr;gap:16px;padding:16px;height:100%}
-    .panel{background:linear-gradient(180deg,rgba(255,255,255,0.02),transparent);border-radius:10px;padding:12px;overflow:auto}
-    h1{margin:6px 0;font-size:16px}
-    .controls{display:flex;gap:8px;align-items:center}
-    .muted{color:var(--muted);font-size:13px}
-    .drop{border:2px dashed rgba(255,255,255,0.03);padding:10px;border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:6px}
-    input[type=file]{display:none}
-    .mini{font-size:12px;color:var(--muted)}
-    .video-wrap{position:relative;display:flex;flex-direction:column;align-items:center}
-    .player-area{position:relative;background:#031423;border-radius:8px;padding:8px}
-    video{display:block;max-width:100%;height:auto;border-radius:6px;background:#000}
-    .marker{position:absolute;width:18px;height:18px;border-radius:50%;transform:translate(-50%,-50%);display:flex;align-items:center;justify-content:center;background:var(--accent2);color:white;border:2px solid #fff;cursor:grab}
-    .marker.dragging{opacity:0.9;cursor:grabbing}
-    .timeline{display:flex;gap:8px;align-items:center;margin-top:10px}
-    .timeline input[type=range]{flex:1}
-    .hotspot-list{margin-top:10px;display:flex;flex-direction:column;gap:8px}
-    .hotspot-card{padding:8px;border-radius:8px;background:rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:6px}
-    .kf-list{display:flex;flex-wrap:wrap;gap:6px}
-    button{background:linear-gradient(180deg,var(--accent),#b43a34);border:0;padding:8px 10px;border-radius:8px;color:white;cursor:pointer}
-    .muted-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);padding:6px 8px;border-radius:8px}
-    textarea{width:100%;height:120px;background:transparent;color:inherit;border-radius:8px;border:1px solid rgba(255,255,255,0.04);padding:8px}
-    .small{font-size:13px;color:var(--muted)}
-    .row{display:flex;gap:6px;align-items:center}
-  </style>
-</head>
-<body>
-  <div class="app">
-    <div class="panel">
-      <h1>Video Hotspot Builder — Full God Mode</h1>
-      <div class="drop" id="drop">
-        <div style="font-weight:700">Drag & drop video here</div>
-        <div class="mini">Supports MP4, WebM — click to browse</div>
-        <input id="fileinput" type="file" accept="video/*" multiple />
-      </div>
-
-      <div style="margin-top:10px;display:flex;gap:6px;flex-wrap:wrap">
-        <button id="newProject">New Project</button>
-        <button id="importJson" class="muted-btn">Import JSON</button>
-        <button id="exportJson" class="muted-btn">Export JSON</button>
-        <button id="downloadTemplate" class="muted-btn">Download Playback Template</button>
-      </div>
-
-      <div style="margin-top:12px">
-        <label class="small">Project JSON (preview)</label>
-        <textarea id="jsonPreview" readonly></textarea>
-      </div>
-
-      <div style="margin-top:12px">
-        <h3 class="small">Hotspot/Keyframe tips</h3>
-        <ul class="small">
-          <li>Click video to add keyframe for the currently-selected hotspot (or create new)</li>
-          <li>Drag markers to reposition (creates/updates keyframe at current time)</li>
-          <li>Use timeline to scrub and add keyframes at exact time.</li>
-          <li>Export JSON and drop it into the playback template to render interactive video.</li>
-        </ul>
-      </div>
-    </div>
-
-    <div class="panel">
-      <div class="row" style="justify-content:space-between;align-items:center">
-        <div>
-          <div class="small">Selected video</div>
-          <div id="videoTitle" style="font-weight:700">No video loaded</div>
-          <div id="videoMeta" class="mini"></div>
-        </div>
-        <div class="row">
-          <button id="playPause" class="muted-btn">Play</button>
-          <button id="addHotspot" class="muted-btn">Add Hotspot</button>
-          <button id="toggleLabels" class="muted-btn">Toggle Labels</button>
-        </div>
-      </div>
-
-      <div class="video-wrap" style="margin-top:8px">
-        <div class="player-area" id="playerArea">
-          <video id="video" controls crossorigin playsinline></video>
-        </div>
-
-        <div class="timeline">
-          <div class="small">Time</div>
-          <input type="range" id="timeRange" min="0" max="100" step="0.01" value="0">
-          <div id="timeLabel" class="small">0:00 / 0:00</div>
-        </div>
-
-        <div class="row" style="margin-top:8px;align-items:center;gap:8px">
-          <label class="small">Selected Hotspot:</label>
-          <select id="hotspotSelect"></select>
-          <input id="hotspotLabel" placeholder="hotspot label" />
-          <button id="deleteHotspot" class="muted-btn">Delete</button>
-        </div>
-
-        <div class="hotspot-list" id="hotspotList"></div>
-      </div>
-    </div>
-  </div>
-
-<script>
-// Video Hotspot Builder — Full Features (no backend)
-// - Drag/drop videos
-// - Add hotspots (each hotspot has keyframes, each keyframe has time+x+y)
-// - Click on video to add keyframe for selected hotspot (or auto-create)
-// - Drag markers to reposition (creates/updates keyframe at current time)
-// - Timeline scrubber and play/pause
-// - Export/import JSON project
-// - Playback template generator (simple HTML that plays video and renders hotspots/keyframes)
-
-const state = { videos: [], selectedVideoIndex: -1, hotspots: [], showLabels:true };
-
-// DOM
-const drop = document.getElementById('drop');
-const fileinput = document.getElementById('fileinput');
-const videoEl = document.getElementById('video');
-const playerArea = document.getElementById('playerArea');
-const timeRange = document.getElementById('timeRange');
-const timeLabel = document.getElementById('timeLabel');
-const playPauseBtn = document.getElementById('playPause');
-const addHotspotBtn = document.getElementById('addHotspot');
-const hotspotSelect = document.getElementById('hotspotSelect');
-const hotspotLabel = document.getElementById('hotspotLabel');
-const hotspotList = document.getElementById('hotspotList');
-const videoTitle = document.getElementById('videoTitle');
-const videoMeta = document.getElementById('videoMeta');
-const exportJsonBtn = document.getElementById('exportJson');
-const importJsonBtn = document.getElementById('importJson');
-const jsonPreview = document.getElementById('jsonPreview');
-const newProjectBtn = document.getElementById('newProject');
-const downloadTemplateBtn = document.getElementById('downloadTemplate');
-const toggleLabelsBtn = document.getElementById('toggleLabels');
-const deleteHotspotBtn = document.getElementById('deleteHotspot');
-
-// helpers
-function uid(n=6){return Math.random().toString(36).slice(2,2+n)}
-function formatTime(s){ if(isNaN(s)) return '0:00'; const mm = Math.floor(s/60); const ss = Math.floor(s%60).toString().padStart(2,'0'); return `${mm}:${ss}` }
-
-// File handling
-fileinput.addEventListener('change', async (e)=>{ await handleFiles([...e.target.files]); fileinput.value=''; });
-['dragenter','dragover','dragleave','drop'].forEach(ev=>drop.addEventListener(ev,(e)=>{e.preventDefault();e.stopPropagation();}));
-drop.addEventListener('drop', async (e)=>{ const files=[...e.dataTransfer.files].filter(f=>f.type.startsWith('video/')); await handleFiles(files); });
-
-async function handleFiles(files){
-  for(const file of files){
-    const url = URL.createObjectURL(file);
-    const vid = document.createElement('video'); vid.src = url; await vid.play().catch(()=>{}); // attempt load metadata
-    await new Promise(res => vid.onloadedmetadata = res);
-    URL.revokeObjectURL(url);
-    state.videos.push({ id: uid(8), name: file.name, fileType: file.type, url: URL.createObjectURL(file), naturalWidth: vid.videoWidth, naturalHeight: vid.videoHeight, duration: vid.duration, hotspots: [] });
-  }
-  if(state.selectedVideoIndex===-1 && state.videos.length>0) selectVideo(0);
-  renderVideoList(); updatePreview();
-}
-
-function renderVideoList(){ /* minimal: not a visible list for brevity */ }
-
-function selectVideo(i){ state.selectedVideoIndex = i; const v = state.videos[i]; videoEl.src = v.url; videoTitle.textContent = v.name; videoMeta.textContent = `${v.naturalWidth}×${v.naturalHeight} • ${Math.round(v.duration)}s`; state.hotspots = v.hotspots; renderHotspotSelect(); renderHotspotPanel(); }
-
-// simple initial video selection if files added
-
-// timeline
-videoEl.addEventListener('loadedmetadata', ()=>{
-  timeRange.max = videoEl.duration; timeRange.value = 0; timeLabel.textContent = `${formatTime(0)} / ${formatTime(videoEl.duration)}`;
-});
-videoEl.addEventListener('timeupdate', ()=>{
-  timeRange.value = videoEl.currentTime; timeLabel.textContent = `${formatTime(videoEl.currentTime)} / ${formatTime(videoEl.duration)}`; renderMarkers(); });
-
-timeRange.addEventListener('input', ()=>{ videoEl.currentTime = parseFloat(timeRange.value); });
-
-playPauseBtn.addEventListener('click', ()=>{ if(videoEl.paused) { videoEl.play(); playPauseBtn.textContent='Pause'; } else { videoEl.pause(); playPauseBtn.textContent='Play'; }});
-
-// Hotspots structure: [{ id, label, keyframes: [{time, x, y}], color }]
-function createHotspot(){ const h = { id: uid(6), label: 'hotspot-'+(state.hotspots.length+1), keyframes: [], color: randomColor() }; state.hotspots.push(h); renderHotspotSelect(); renderHotspotPanel(); updatePreview(); return h; }
-
-addHotspotBtn.addEventListener('click', ()=>{ const h = createHotspot(); hotspotSelect.value = h.id; hotspotLabel.value = h.label; });
-
-function randomColor(){ const hue = Math.floor(Math.random()*360); return `hsl(${hue} 80% 55%)`; }
-
-function renderHotspotSelect(){ hotspotSelect.innerHTML = ''; state.hotspots.forEach(h=>{ const o = document.createElement('option'); o.value=h.id; o.textContent=h.label; hotspotSelect.appendChild(o); }); }
-
-hotspotSelect.addEventListener('change', ()=>{ const id = hotspotSelect.value; const h = state.hotspots.find(x=>x.id===id); if(h){ hotspotLabel.value = h.label; } renderHotspotPanel(); });
-
-hotspotLabel.addEventListener('change', ()=>{ const h = state.hotspots.find(x=>x.id===hotspotSelect.value); if(h){ h.label = hotspotLabel.value; renderHotspotSelect(); renderHotspotPanel(); updatePreview(); } });
-
-deleteHotspotBtn.addEventListener('click', ()=>{ const id = hotspotSelect.value; const idx = state.hotspots.findIndex(x=>x.id===id); if(idx>=0){ if(!confirm('Delete hotspot?')) return; state.hotspots.splice(idx,1); renderHotspotSelect(); renderHotspotPanel(); updatePreview(); } });
-
-// clicking on video to add keyframe for currently-selected hotspot (or create one)
-playerArea.addEventListener('click', (e)=>{
-  if(!videoEl.src) return;
-  // skip if clicking on marker (we handle marker drag separately)
-  if(e.target.classList && e.target.classList.contains('marker')) return;
-  const rect = videoEl.getBoundingClientRect();
-  const cx = Math.min(Math.max(0, e.clientX - rect.left), rect.width);
-  const cy = Math.min(Math.max(0, e.clientY - rect.top), rect.height);
-  const nx = Math.round((cx/rect.width)*videoEl.videoWidth);
-  const ny = Math.round((cy/rect.height)*videoEl.videoHeight);
-  const t = videoEl.currentTime;
-  let h = state.hotspots.find(x=>x.id===hotspotSelect.value);
-  if(!h){ h = createHotspot(); hotspotSelect.value = h.id; }
-  // push keyframe (if nearby time exists, replace)
-  const existing = h.keyframes.find(k=>Math.abs(k.time - t) < 0.05);
-  if(existing){ existing.x = nx; existing.y = ny; existing.time = t; }
-  else { h.keyframes.push({ time: t, x: nx, y: ny }); h.keyframes.sort((a,b)=>a.time-b.time); }
-  renderHotspotPanel(); updatePreview(); renderMarkers();
-});
-
-// render hotspot cards & keyframes
-function renderHotspotPanel(){ hotspotList.innerHTML='';
-  state.hotspots.forEach(h=>{
-    const card = document.createElement('div'); card.className='hotspot-card';
-    const head = document.createElement('div'); head.style.display='flex'; head.style.justifyContent='space-between'; head.innerHTML = `<div><strong style='color:${h.color}'>${h.label}</strong> <span class='mini'>id:${h.id}</span></div><div class='mini'>${h.keyframes.length} keyframes</div>`;
-    card.appendChild(head);
-    const kfWrap = document.createElement('div'); kfWrap.className='kf-list';
-    h.keyframes.forEach((k,ki)=>{
-      const kbtn = document.createElement('button'); kbtn.className='muted-btn'; kbtn.textContent = `${formatTime(k.time)} @ ${k.x},${k.y}`;
-      kbtn.addEventListener('click', ()=>{ videoEl.currentTime = k.time; });
-      const del = document.createElement('button'); del.className='muted-btn'; del.textContent='✕'; del.addEventListener('click', ()=>{ if(confirm('Delete keyframe?')){ h.keyframes.splice(ki,1); renderHotspotPanel(); updatePreview(); renderMarkers(); }});
-      kfWrap.appendChild(kbtn); kfWrap.appendChild(del);
-    });
-    const actions = document.createElement('div'); actions.style.display='flex'; actions.style.gap='6px';
-    const gotoBtn = document.createElement('button'); gotoBtn.className='muted-btn'; gotoBtn.textContent='Jump to first'; gotoBtn.addEventListener('click', ()=>{ if(h.keyframes[0]) videoEl.currentTime = h.keyframes[0].time; });
-    actions.appendChild(gotoBtn);
-    card.appendChild(kfWrap); card.appendChild(actions);
-    hotspotList.appendChild(card);
-  });
-}
-
-// markers rendered over video
-function renderMarkers(){ // remove old markers
-  document.querySelectorAll('.marker').forEach(n=>n.remove());
-  if(!videoEl.src) return;
-  const rect = videoEl.getBoundingClientRect();
-  const curr = videoEl.currentTime;
-  state.hotspots.forEach(h=>{
-    // find interpolation between keyframes for current time
-    if(h.keyframes.length===0) return;
-    // if before first or after last, clamp
-    let p;
-    if(curr <= h.keyframes[0].time) { p = { x: h.keyframes[0].x, y: h.keyframes[0].y }; }
-    else if(curr >= h.keyframes[h.keyframes.length-1].time) { p = { x: h.keyframes[h.keyframes.length-1].x, y: h.keyframes[h.keyframes.length-1].y }; }
-    else {
-      // find surrounding
-      for(let i=0;i<h.keyframes.length-1;i++){
-        const a=h.keyframes[i], b=h.keyframes[i+1];
-        if(curr >= a.time && curr <= b.time){
-          const t = (curr - a.time) / (b.time - a.time);
-          // linear interpolation
-          const ix = Math.round(a.x + (b.x - a.x) * t);
-          const iy = Math.round(a.y + (b.y - a.y) * t);
-          p = { x: ix, y: iy };
-          break;
-        }
-      }
-    }
-    if(!p) return;
-    // convert to client coords
-    const left = (p.x / videoEl.videoWidth) * rect.width + rect.left;
-    const top = (p.y / videoEl.videoHeight) * rect.height + rect.top;
-    const el = document.createElement('div'); el.className='marker'; el.style.left = ( (p.x / videoEl.videoWidth) * 100) + '%'; el.style.top = ( (p.y / videoEl.videoHeight) * 100) + '%';
-    el.style.borderColor = '#fff'; el.style.background = h.color; el.dataset.hotspot = h.id; el.title = h.label;
-    el.textContent = state.showLabels ? (h.label.length>1? h.label[0] : h.label) : '';
-    // position relative to playerArea instead of viewport
-    // convert percentages into absolute inside playerArea
-    const wrapRect = playerArea.getBoundingClientRect();
-    el.style.left = ((p.x / videoEl.videoWidth) * 100) + '%';
-    el.style.top = ((p.y / videoEl.videoHeight) * 100) + '%';
-    // absolute positioning required: place inside playerArea
-    el.style.position = 'absolute'; el.style.transform='translate(-50%,-50%)';
-    // attach drag handlers
-    makeDraggable(el, h, p);
-    playerArea.appendChild(el);
-  });
-}
-
-// Dragging markers to create/update keyframe at current time
-function makeDraggable(el, hotspot, currentPos){
-  let dragging=false;
-  el.addEventListener('mousedown',(ev)=>{ ev.preventDefault(); dragging=true; el.classList.add('dragging'); document.addEventListener('mousemove', onmove); document.addEventListener('mouseup', onup, {once:true}); });
-  function onmove(e){ if(!dragging) return; const rect = videoEl.getBoundingClientRect(); const cx = Math.min(Math.max(0, e.clientX - rect.left), rect.width); const cy = Math.min(Math.max(0, e.clientY - rect.top), rect.height); const nx = Math.round((cx/rect.width)*videoEl.videoWidth); const ny = Math.round((cy/rect.height)*videoEl.videoHeight); // update a transient visual
-    el.style.left = (nx / videoEl.videoWidth * 100) + '%'; el.style.top = (ny / videoEl.videoHeight * 100) + '%'; }
-  function onup(e){ dragging=false; el.classList.remove('dragging'); document.removeEventListener('mousemove', onmove);
-    const rect = videoEl.getBoundingClientRect(); const cx = Math.min(Math.max(0, e.clientX - rect.left), rect.width); const cy = Math.min(Math.max(0, e.clientY - rect.top), rect.height); const nx = Math.round((cx/rect.width)*videoEl.videoWidth); const ny = Math.round((cy/rect.height)*videoEl.videoHeight); const t = videoEl.currentTime;
-    // insert or update keyframe near current time
-    const h = hotspot;
-    const existingIndex = h.keyframes.findIndex(k=>Math.abs(k.time - t) < 0.05);
-    if(existingIndex>=0){ h.keyframes[existingIndex].x = nx; h.keyframes[existingIndex].y = ny; h.keyframes[existingIndex].time = t; }
-    else { h.keyframes.push({ time: t, x: nx, y: ny }); h.keyframes.sort((a,b)=>a.time-b.time); }
-    renderHotspotPanel(); updatePreview(); renderMarkers(); }
-}
-
-// export/import
-function buildProject(){
-  if(state.selectedVideoIndex<0) return { videos: [] };
-  const v = state.videos[state.selectedVideoIndex];
-  return { video: { name: v.name, url: v.url, naturalWidth: v.naturalWidth, naturalHeight: v.naturalHeight, duration: v.duration }, hotspots: state.hotspots };
-}
-
-exportJsonBtn.addEventListener('click', ()=>{ const data = buildProject(); const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='video-hotspots.json'; a.click(); URL.revokeObjectURL(a.href); });
-
-importJsonBtn.addEventListener('click', ()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=async(e)=>{ const f = e.target.files[0]; if(!f) return; const txt = await f.text(); try{ const parsed = JSON.parse(txt); // load into state
-    if(parsed.video){ // create placeholder video entry: user must reattach actual file to preserve URLs
-      state.videos = [{ id:uid(8), name: parsed.video.name || 'imported', url: parsed.video.url || '', naturalWidth: parsed.video.naturalWidth || 0, naturalHeight: parsed.video.naturalHeight || 0, duration: parsed.video.duration || 0, hotspots: parsed.hotspots || [] }]; selectVideo(0); updatePreview(); alert('Imported. If video URL is missing, re-upload the video and ensure name matches to merge.'); }
-    }catch(err){alert('Invalid JSON'); } }; inp.click(); });
-
-function updatePreview(){ jsonPreview.value = JSON.stringify(buildProject(), null, 2); }
-
-// new project
-newProjectBtn.addEventListener('click', ()=>{ if(!confirm('Start a new project? Unsaved changes will be lost.')) return; state.videos=[]; state.selectedVideoIndex=-1; state.hotspots=[]; videoEl.src=''; videoTitle.textContent='No video loaded'; videoMeta.textContent=''; updatePreview(); });
-
-// download playback template
-downloadTemplateBtn.addEventListener('click', ()=>{
-  const project = buildProject(); const tpl = playbackTemplate(project);
-  const blob = new Blob([tpl],{type:'text/html'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='video-hotspot-playback.html'; a.click(); URL.revokeObjectURL(a.href);
-});
-
-// toggle labels
-toggleLabelsBtn.addEventListener('click', ()=>{ state.showLabels=!state.showLabels; renderMarkers(); toggleLabelsBtn.textContent = state.showLabels? 'Hide Labels' : 'Show Labels'; });
-
-// initial call
-updatePreview();
-
-// PLAYBACK TEMPLATE generator (simple engine that reads exported JSON and renders hotspots/keyframes)
-function playbackTemplate(project){
-  const json = JSON.stringify(project).replace(/</g, '\\u003c');
-  return `<!doctype html>\n<html><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Interactive Video Playback</title><style>body{background:#071127;color:#e6eef6;font-family:Inter,system-ui,Arial;padding:20px}.wrapper{max-width:1100px;margin:0 auto;position:relative}.player{position:relative}.hotspot{position:absolute;transform:translate(-50%,-50%);width:18px;height:18px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px}</style></head><body><div class=\"wrapper\"><h2>Interactive Playback</h2><div class=\"player\"><video id=\"v\" controls playsinline style=\"max-width:100%\"></video></div></div><script>const project = ${json}; const container = document.querySelector('.player'); const video = document.getElementById('v'); if(project.video && project.video.url){ video.src = project.video.url; } else { alert('No video URL in project. Replace project.video.url with your hosted video URL in the exported JSON or use a local file.'); }
-  video.addEventListener('loadedmetadata', ()=>{ renderAll(); video.addEventListener('timeupdate', ()=>{ renderAll(); }); });
-  function renderAll(){ document.querySelectorAll('.hotspot').forEach(n=>n.remove()); const rect = video.getBoundingClientRect(); project.hotspots.forEach(h=>{ if(!h.keyframes || h.keyframes.length===0) return; const curr = video.currentTime; let p;
-    if(curr <= h.keyframes[0].time) p = {x:h.keyframes[0].x,y:h.keyframes[0].y};
-    else if(curr >= h.keyframes[h.keyframes.length-1].time) p = {x:h.keyframes[h.keyframes.length-1].x,y:h.keyframes[h.keyframes.length-1].y};
-    else { for(let i=0;i<h.keyframes.length-1;i++){ const a=h.keyframes[i], b=h.keyframes[i+1]; if(curr>=a.time && curr<=b.time){ const t = (curr-a.time)/(b.time-a.time); const ix = Math.round(a.x + (b.x-a.x)*t); const iy = Math.round(a.y + (b.y-a.y)*t); p={x:ix,y:iy}; break;} }}
-    if(!p) return; const el = document.createElement('div'); el.className='hotspot'; el.style.left=(p.x/project.video.naturalWidth*100)+'%'; el.style.top=(p.y/project.video.naturalHeight*100)+'%'; el.style.background = h.color || '#7c3aed'; el.textContent = h.label? h.label[0] : '';
-    // example: show popup when hotspot is visible
-    el.addEventListener('click', ()=>{ alert('Clicked: '+(h.label||h.id)); }); container.appendChild(el);
-  }); }
-</script></body></html>`
-}
-
-</script>
-</body>
-</html>
-
